@@ -9,7 +9,7 @@ RUN apk add --no-cache \
     sqlite
 
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --only=production
 
 RUN mkdir -p uploads processed data public
 COPY . .
