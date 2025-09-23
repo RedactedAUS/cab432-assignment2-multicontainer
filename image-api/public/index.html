@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAB432 Image API - Assignment 1</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h2 {
+            color: #5a67d8;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .admin-card {
+            border: 2px solid #ed8936;
+            background: linear-gradient(135deg, #fff5f0 0%, #fffaf7 100%);
+        }
+        
+        .admin-card h2 {
+            color: #ed8936;
+        }
+        
+        .enhancement-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 15px 0;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .enhancement-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .enhancement-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        .enhancement-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .processing {
+            background: linear-gradient(135deg, #ff9a56 0%, #ffad56 100%);
+            animation: pulse 2s infinite;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        input, button, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #5a67d8;
+            box-shadow: 0 0 0 3px rgba(90, 103, 216, 0.1);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #5a67d8 0%, #667eea 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(90, 103, 216, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-admin {
+            background: linear-gradient(135deg, #ed8936 0%, #f6ad55 100%);
+        }
+        
+        .btn-admin:hover {
+            box-shadow: 0 5px 15px rgba(237, 137, 54, 0.4);
+        }
+        
+        .btn-enhance {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-size: 14px;
+            padding: 8px;
+        }
+        
+        .btn-enhance:hover {
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .success {
+            background: #f0fff4;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #38a169;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #e53e3e;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .image-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 10px;
+            position: relative;
+        }
+        
+        .image-item.enhanced {
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        }
+        
+        .image-item h4 {
+            color: #5a67d8;
+            margin-bottom: 8px;
+        }
+        
+        .image-item p {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .button-group button {
+            flex: 1;
+            font-size: 14px;
+            padding: 8px;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #f56565 100%);
+        }
+        
+        .btn-info {
+            background: linear-gradient(135deg, #3182ce 0%, #4299e1 100%);
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 600;
+        }
+        
+        .logged-out {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .logged-in {
+            background: #f0fff4;
+            color: #22543d;
+        }
+        
+        .logged-in-admin {
+            background: #fef5e7;
+            color: #7c2d12;
+            border: 2px solid #ed8936;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ed8936;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 5px;
+        }
+        
+        .enhanced-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .stress-warning {
+            background: #fef5e7;
+            color: #744210;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border-left: 4px solid #ed8936;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .enhancement-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CAB432 Image API</h1>
+            <p>Cloud Computing Assignment 1 - Image Upload & Retrieval System</p>
+        </div>
+        
+        <div id="auth-status" class="status logged-out">
+            Not Logged In
+        </div>
+        
+        <div class="grid">
+            <!-- Authentication Card -->
+            <div class="card">
+                <h2>Authentication</h2>
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" value="user" placeholder="Enter username">
+                    <small style="color: #718096; margin-top: 5px; display: block;">
+                        Try: "user" or "admin"
+                    </small>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" value="user" placeholder="Enter password">
+                    <small style="color: #718096; margin-top: 5px; display: block;">
+                        Password same as username
+                    </small>
+                </div>
+                <button id="login-btn" onclick="login()">Login</button>
+                <button id="logout-btn" onclick="logout()" class="hidden">Logout</button>
+                <div id="auth-result"></div>
+            </div>
+            
+            <!-- Image Upload Card -->
+            <div class="card">
+                <h2>Upload Image</h2>
+                <div class="form-group">
+                    <label for="image-file">Select Image:</label>
+                    <input type="file" id="image-file" accept="image/*">
+                </div>
+                <button id="upload-btn" onclick="uploadImage()" disabled>Upload Image</button>
+                <div id="upload-result"></div>
+            </div>
+        </div>
+        
+        <!-- Image Management Card -->
+        <div class="card">
+            <h2>My Images</h2>
+            <button id="refresh-btn" onclick="loadImages()" disabled>Refresh Images</button>
+            <div id="images-list"></div>
+        </div>
+        
+        <!-- Admin Panel - Only visible for admin users -->
+        <div id="admin-panel" class="card admin-card hidden">
+            <h2>Admin Panel</h2>
+            <div class="grid">
+                <div>
+                    <button class="btn-admin" onclick="loadAllImages()" disabled id="admin-all-btn">
+                        View All Users' Images
+                    </button>
+                    <div id="admin-images-result"></div>
+                </div>
+                <div>
+                    <button class="btn-admin" onclick="loadSystemStats()" disabled id="admin-stats-btn">
+                        System Statistics
+                    </button>
+                    <div id="admin-stats-result"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CPU Load Testing Card for Assignment Requirements -->
+        <div class="card">
+            <h2>CPU Load Testing - Assignment Requirements</h2>
+            
+            <div class="stress-warning">
+                <strong>Assignment Goal:</strong> Demonstrate sustained >80% CPU utilization for auto-scaling preparation.
+                <br>Image processing simulation tests server capacity for later multi-instance deployment.
+            </div>
+            
+            <div class="grid">
+                <div>
+                    <h3 style="color: #ed8936; margin-bottom: 15px;">Sustained Load Testing</h3>
+                    <div class="form-group">
+                        <label for="sustained-duration">Test Duration (minutes):</label>
+                        <select id="sustained-duration">
+                            <option value="1">1 minute (quick test)</option>
+                            <option value="5" selected>5 minutes (assignment requirement)</option>
+                            <option value="10">10 minutes (extended test)</option>
+                        </select>
+                    </div>
+                    <button id="sustained-stress-btn" onclick="runSustainedProcessingTest()" disabled>
+                        Start Image Processing Load Test
+                    </button>
+                    <div id="sustained-stress-result"></div>
+                </div>
+                
+                <div>
+                    <h3 style="color: #5a67d8; margin-bottom: 15px;">Quick Development Testing</h3>
+                    <div class="form-group">
+                        <label for="stress-level">Processing Intensity:</label>
+                        <select id="stress-level">
+                            <option value="5000000">Light (5M operations)</option>
+                            <option value="50000000">Medium (50M operations)</option>
+                            <option value="80000000" selected>Heavy (80M operations)</option>
+                        </select>
+                    </div>
+                    <button id="stress-btn" onclick="runQuickProcessingTest()" disabled>Run Quick Processing Test</button>
+                    <div id="stress-result"></div>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #edf2f7; border-radius: 8px;">
+                <h4 style="color: #4a5568; margin-bottom: 10px;">Monitoring Instructions:</h4>
+                <p style="font-size: 14px; color: #718096;">
+                    1. AWS Console → EC2 → Your Instance → Monitoring tab<br>
+                    2. Watch CPU Utilization graph during sustained tests<br>
+                    3. Target: >80% CPU utilization for full test duration<br>
+                    4. Use htop command in SSH for real-time process monitoring
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = null;
+        let currentUser = null;
+        const API_BASE = window.location.origin;
+        
+        // Check if user is logged in
+        function updateAuthStatus() {
+            const status = document.getElementById('auth-status');
+            const loginBtn = document.getElementById('login-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const uploadBtn = document.getElementById('upload-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const stressBtn = document.getElementById('stress-btn');
+            const sustainedStressBtn = document.getElementById('sustained-stress-btn');
+            const adminPanel = document.getElementById('admin-panel');
+            const adminAllBtn = document.getElementById('admin-all-btn');
+            const adminStatsBtn = document.getElementById('admin-stats-btn');
+            
+            if (authToken && currentUser) {
+                if (currentUser.role === 'admin') {
+                    status.textContent = 'Logged In as Admin: ' + currentUser.username;
+                    status.className = 'status logged-in-admin';
+                    adminPanel.classList.remove('hidden');
+                    adminAllBtn.disabled = false;
+                    adminStatsBtn.disabled = false;
+                } else {
+                    status.textContent = 'Logged In as User: ' + currentUser.username;
+                    status.className = 'status logged-in';
+                    adminPanel.classList.add('hidden');
+                }
+                
+                loginBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                uploadBtn.disabled = false;
+                refreshBtn.disabled = false;
+                stressBtn.disabled = false;
+                sustainedStressBtn.disabled = false;
+                loadImages();
+            } else {
+                status.textContent = 'Not Logged In';
+                status.className = 'status logged-out';
+                loginBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                uploadBtn.disabled = true;
+                refreshBtn.disabled = true;
+                stressBtn.disabled = true;
+                sustainedStressBtn.disabled = true;
+                adminPanel.classList.add('hidden');
+                adminAllBtn.disabled = true;
+                adminStatsBtn.disabled = true;
+                document.getElementById('images-list').innerHTML = '';
+            }
+        }
+        
+        // Login function
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('auth-result');
+            
+            try {
+                const response = await fetch(API_BASE + '/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    authToken = data.authToken;
+                    currentUser = data.user;
+                    const roleDisplay = data.user.role === 'admin' ? 'Admin' : 'User';
+                    resultDiv.innerHTML = '<div class="success">Login successful! Welcome, ' + data.user.username + ' (' + roleDisplay + ')</div>';
+                    updateAuthStatus();
+                } else {
+                    resultDiv.innerHTML = '<div class="error">' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Login failed: ' + error.message + '</div>';
+            }
+        }
+        
+        // Logout function
+        function logout() {
+            authToken = null;
+            currentUser = null;
+            document.getElementById('auth-result').innerHTML = '';
+            document.getElementById('upload-result').innerHTML = '';
+            document.getElementById('stress-result').innerHTML = '';
+            document.getElementById('sustained-stress-result').innerHTML = '';
+            document.getElementById('admin-images-result').innerHTML = '';
+            document.getElementById('admin-stats-result').innerHTML = '';
+            updateAuthStatus();
+        }
+        
+        // Upload image function
+        async function uploadImage() {
+            const fileInput = document.getElementById('image-file');
+            const resultDiv = document.getElementById('upload-result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="error">Please select an image file</div>';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+            
+            try {
+                resultDiv.innerHTML = '<div class="status">Uploading image...</div>';
+                
+                const response = await fetch(API_BASE + '/images', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">Image uploaded successfully!<br><strong>ID:</strong> ' + data.id + '<br><strong>Filename:</strong> ' + data.filename + '<br><strong>Size:</strong> ' + (data.size / 1024).toFixed(1) + ' KB</div>';
+                    fileInput.value = '';
+                    loadImages();
+                } else {
+                    resultDiv.innerHTML = '<div class="error">' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Upload failed: ' + error.message + '</div>';
+            }
+        }
+        
+        // Load images function
+        async function loadImages() {
+            const listDiv = document.getElementById('images-list');
+            
+            try {
+                const response = await fetch(API_BASE + '/images', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.images && data.images.length > 0) {
+                        let imagesHTML = '';
+                        for (let image of data.images) {
+                            const enhancedClass = image.enhancementType ? 'enhanced' : '';
+                            const enhancedBadge = image.enhancementType ? '<div class="enhanced-badge">Enhanced</div>' : '';
+                            const enhancementInfo = image.enhancementType ? '<p><strong>Enhancement:</strong> ' + image.enhancementType + '</p>' : '';
+                            const originalIdInfo = image.originalId ? '<p><strong>Original ID:</strong> ' + image.originalId + '</p>' : '';
+                            const enhanceBtn = !image.enhancementType ? '<button class="btn-enhance" onclick="showEnhancementPanel(\'' + image.id + '\', \'' + image.filename + '\')">Enhance Image</button>' : '';
+                            
+                            imagesHTML += '<div class="image-item ' + enhancedClass + '">' + 
+                                enhancedBadge +
+                                '<h4>' + image.filename + (image.enhancementType ? ' (Enhanced)' : '') + '</h4>' +
+                                '<p><strong>ID:</strong> ' + image.id + '</p>' +
+                                '<p><strong>Size:</strong> ' + (image.size / 1024).toFixed(1) + ' KB</p>' +
+                                '<p><strong>Type:</strong> ' + image.mime + '</p>' +
+                                '<p><strong>Uploaded:</strong> ' + new Date(image.createdAt).toLocaleString() + '</p>' +
+                                enhancementInfo +
+                                originalIdInfo +
+                                '<div class="button-group">' +
+                                    '<button class="btn-info" onclick="downloadImage(\'' + image.id + '\', \'' + image.filename + '\')">Download</button>' +
+                                    enhanceBtn +
+                                    '<button class="btn-danger" onclick="deleteImage(\'' + image.id + '\', \'' + image.filename + '\')">Delete</button>' +
+                                '</div>' +
+                            '</div>';
+                        }
+                        listDiv.innerHTML = imagesHTML;
+                    } else {
+                        listDiv.innerHTML = '<p style="text-align: center; color: #718096; font-style: italic;">No images uploaded yet. Upload your first image!</p>';
+                    }
+                } else {
+                    listDiv.innerHTML = '<div class="error">Failed to load images: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                listDiv.innerHTML = '<div class="error">Failed to load images: ' + error.message + '</div>';
+            }
+        }
+        
+        // Image enhancement functions
+        async function enhanceImage(imageId, enhancementType) {
+            try {
+                const response = await fetch(API_BASE + '/images/' + imageId + '/enhance', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ type: enhancementType })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    return { success: true, data: data };
+                } else {
+                    return { success: false, error: data.error };
+                }
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+        
+        function showEnhancementPanel(imageId, filename) {
+            const existingPanel = document.querySelector('.enhancement-panel');
+            if (existingPanel) {
+                existingPanel.remove();
+            }
+            
+            const panelHTML = '<div class="enhancement-panel" id="enhancement-' + imageId + '">' +
+                '<h4>Image Enhancement for "' + filename + '"</h4>' +
+                '<p>Choose an enhancement to apply to your image:</p>' +
+                '<div class="enhancement-options" id="enhancement-options-' + imageId + '">' +
+                    '<div class="enhancement-btn" onclick="processEnhancement(\'' + imageId + '\', \'auto\')">' +
+                        '<strong>Auto Enhance</strong><br>' +
+                        '<small>Improve brightness, contrast & colors</small>' +
+                    '</div>' +
+                    '<div class="enhancement-btn" onclick="processEnhancement(\'' + imageId + '\', \'remove-bg\')">' +
+                        '<strong>Background Effect</strong><br>' +
+                        '<small>Background outline processing</small>' +
+                    '</div>' +
+                    '<div class="enhancement-btn" onclick="processEnhancement(\'' + imageId + '\', \'upscale\')">' +
+                        '<strong>Upscale</strong><br>' +
+                        '<small>Increase resolution to 1920px</small>' +
+                    '</div>' +
+                    '<div class="enhancement-btn" onclick="processEnhancement(\'' + imageId + '\', \'vintage\')">' +
+                        '<strong>Vintage Filter</strong><br>' +
+                        '<small>Classic retro photo effect</small>' +
+                    '</div>' +
+                '</div>' +
+                '<button onclick="closeEnhancementPanel(\'' + imageId + '\')" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3); padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">Cancel</button>' +
+                '<div id="enhancement-result-' + imageId + '"></div>' +
+            '</div>';
+            
+            const imageElements = document.querySelectorAll('.image-item');
+            let targetElement = null;
+            for (let el of imageElements) {
+                if (el.querySelector('p').textContent.includes(imageId)) {
+                    targetElement = el;
+                    break;
+                }
+            }
+            
+            if (targetElement) {
+                targetElement.insertAdjacentHTML('afterend', panelHTML);
+            }
+        }
+        
+        async function processEnhancement(imageId, enhancementType) {
+            const resultDiv = document.getElementById('enhancement-result-' + imageId);
+            const optionsDiv = document.getElementById('enhancement-options-' + imageId);
+            
+            try {
+                resultDiv.innerHTML = '<div class="processing"><strong>Processing Image...</strong><br><small>Enhancement in progress</small></div>';
+                
+                optionsDiv.style.opacity = '0.5';
+                optionsDiv.style.pointerEvents = 'none';
+                
+                const result = await enhanceImage(imageId, enhancementType);
+                
+                if (result.success) {
+                    resultDiv.innerHTML = '<div class="success" style="margin-top: 15px;">Enhancement Complete!<br><strong>New File:</strong> ' + result.data.enhancedImage.filename + '<br><strong>Enhancement:</strong> ' + result.data.enhancedImage.enhancementType + '<br><strong>Size:</strong> ' + (result.data.enhancedImage.size / 1024).toFixed(1) + ' KB<br><button onclick="loadImages(); closeEnhancementPanel(\'' + imageId + '\');" style="background: #38a169; color: white; border: none; padding: 10px 20px; border-radius: 5px; margin-top: 10px; cursor: pointer;">Refresh to View Enhanced Image</button></div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error" style="margin-top: 15px;">Enhancement Failed<br>' + result.error + '</div>';
+                    optionsDiv.style.opacity = '1';
+                    optionsDiv.style.pointerEvents = 'auto';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error" style="margin-top: 15px;">Processing Error: ' + error.message + '</div>';
+                optionsDiv.style.opacity = '1';
+                optionsDiv.style.pointerEvents = 'auto';
+            }
+        }
+        
+        function closeEnhancementPanel(imageId) {
+            const panel = document.getElementById('enhancement-' + imageId);
+            if (panel) {
+                panel.remove();
+            }
+        }
+        
+        // Admin functions
+        async function loadAllImages() {
+            const resultDiv = document.getElementById('admin-images-result');
+            
+            try {
+                resultDiv.innerHTML = '<div class="status">Loading all users images...</div>';
+                
+                const response = await fetch(API_BASE + '/images/admin/all', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.images && data.images.length > 0) {
+                        let imagesHTML = '<div class="success">Admin View: ' + data.totalImages + ' total images</div>';
+                        for (let image of data.images) {
+                            imagesHTML += '<div class="image-item">' +
+                                '<h4>' + image.filename + ' <span style="color: #ed8936;">(' + image.owner + ')</span></h4>' +
+                                '<p><strong>ID:</strong> ' + image.id + '</p>' +
+                                '<p><strong>Owner:</strong> ' + image.owner + '</p>' +
+                                '<p><strong>Size:</strong> ' + (image.size / 1024).toFixed(1) + ' KB</p>' +
+                                '<p><strong>Type:</strong> ' + image.mime + '</p>' +
+                                '<p><strong>Uploaded:</strong> ' + new Date(image.createdAt).toLocaleString() + '</p>' +
+                                '<div class="button-group">' +
+                                    '<button class="btn-danger" onclick="adminDeleteImage(\'' + image.owner + '\', \'' + image.id + '\', \'' + image.filename + '\')">Admin Delete</button>' +
+                                '</div>' +
+                            '</div>';
+                        }
+                        resultDiv.innerHTML = imagesHTML;
+                    } else {
+                        resultDiv.innerHTML = '<div class="success">Admin View: No images in system</div>';
+                    }
+                } else {
+                    resultDiv.innerHTML = '<div class="error">' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Failed to load all images: ' + error.message + '</div>';
+            }
+        }
+        
+        async function loadSystemStats() {
+            const resultDiv = document.getElementById('admin-stats-result');
+            
+            try {
+                resultDiv.innerHTML = '<div class="status">Loading system statistics...</div>';
+                
+                const response = await fetch(API_BASE + '/images/admin/stats', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const stats = data.stats;
+                    let statsHTML = '<div class="success">System Statistics</div>' +
+                        '<div class="stats-grid">' +
+                            '<div class="stat-item">' +
+                                '<div class="stat-number">' + stats.totalImages + '</div>' +
+                                '<div class="stat-label">Total Images</div>' +
+                            '</div>' +
+                            '<div class="stat-item">' +
+                                '<div class="stat-number">' + stats.totalUsers + '</div>' +
+                                '<div class="stat-label">Total Users</div>' +
+                            '</div>' +
+                            '<div class="stat-item">' +
+                                '<div class="stat-number">' + stats.totalStorageMB + '</div>' +
+                                '<div class="stat-label">Storage (MB)</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="margin-top: 15px;">' +
+                            '<h4>Users: ' + stats.users.join(', ') + '</h4>' +
+                            '<h4>File Types:</h4>';
+                    
+                    for (let type in stats.imagesByType) {
+                        statsHTML += '<p>' + type + ': ' + stats.imagesByType[type] + ' files</p>';
+                    }
+                    statsHTML += '</div>';
+                    
+                    resultDiv.innerHTML = statsHTML;
+                } else {
+                    resultDiv.innerHTML = '<div class="error">' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Failed to load stats: ' + error.message + '</div>';
+            }
+        }
+        
+        async function adminDeleteImage(owner, imageId, filename) {
+            if (!confirm('Are you sure you want to delete "' + filename + '" belonging to user "' + owner + '"?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_BASE + '/images/admin/' + owner + '/' + imageId, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Admin deleted "' + filename + '" from user "' + owner + '"!');
+                    loadAllImages();
+                    loadImages();
+                } else {
+                    alert('Failed to delete image: ' + data.error);
+                }
+            } catch (error) {
+                alert('Delete failed: ' + error.message);
+            }
+        }
+        
+        // Download image function
+        async function downloadImage(imageId, filename) {
+            try {
+                const response = await fetch(API_BASE + '/images/' + imageId + '/url', {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Failed to get download link: ' + data.error);
+                }
+            } catch (error) {
+                alert('Download failed: ' + error.message);
+            }
+        }
+        
+        async function deleteImage(imageId, filename) {
+            if (!confirm('Are you sure you want to delete "' + filename + '"?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(API_BASE + '/images/' + imageId, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('"' + filename + '" deleted successfully!');
+                    loadImages();
+                } else {
+                    alert('Failed to delete image: ' + data.error);
+                }
+            } catch (error) {
+                alert('Delete failed: ' + error.message);
+            }
+        }
+        
+        // CPU LOAD TESTING FUNCTIONS FOR ASSIGNMENT
+        
+        // Sustained image processing load test
+        async function runSustainedProcessingTest() {
+            const duration = document.getElementById('sustained-duration').value;
+            const resultDiv = document.getElementById('sustained-stress-result');
+            const stressBtn = document.getElementById('sustained-stress-btn');
+            
+            try {
+                stressBtn.disabled = true;
+                stressBtn.textContent = 'Running Load Test...';
+                
+                const durationMin = parseFloat(duration);
+                
+                resultDiv.innerHTML = '<div class="processing"><strong>Running Image Processing Load Test</strong><br>' +
+                    'Duration: ' + durationMin + ' minutes<br>' +
+                    '<strong>Assignment Target:</strong> >80% CPU utilization<br>' +
+                    '<small>Simulating intensive image filtering operations</small><br>' +
+                    '<strong>Monitor AWS CloudWatch now!</strong></div>';
+                
+                const startTime = Date.now();
+                const response = await fetch(API_BASE + '/images/stress/' + duration, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                const endTime = Date.now();
+                const actualDurationSec = Math.round((endTime - startTime) / 1000);
+                
+                if (response.ok) {
+                    const cpuMet = data.cpuUsagePercent >= 80;
+                    const statusClass = cpuMet ? 'success' : 'error';
+                    
+                    resultDiv.innerHTML = '<div class="' + statusClass + '">' +
+                        '<strong>Image Processing Load Test Completed!</strong><br>' +
+                        '<strong>Duration:</strong> ' + data.actualDurationMinutes + ' minutes<br>' +
+                        '<strong>Images Processed:</strong> ' + data.simulatedImagesProcessed.toLocaleString() + '<br>' +
+                        '<strong>Pixels Processed:</strong> ' + data.totalPixelsProcessed.toLocaleString() + '<br>' +
+                        '<strong>CPU Usage:</strong> ' + data.cpuUsagePercent + '%<br>' +
+                        '<strong>Assignment Status:</strong> ' + data.assignmentRequirement + '<br>' +
+                        '<em>Verify sustained load in AWS CloudWatch CPU Utilization graph</em>' +
+                        '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Load test failed: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Load test failed: ' + error.message + '</div>';
+            } finally {
+                stressBtn.disabled = false;
+                stressBtn.textContent = 'Start Image Processing Load Test';
+            }
+        }
+        
+        // Quick processing test for development
+        async function runQuickProcessingTest() {
+            const stressLevel = document.getElementById('stress-level').value;
+            const resultDiv = document.getElementById('stress-result');
+            const stressBtn = document.getElementById('stress-btn');
+            
+            try {
+                stressBtn.disabled = true;
+                stressBtn.textContent = 'Running Test...';
+                resultDiv.innerHTML = '<div class="status">Running quick processing test with ' + parseInt(stressLevel).toLocaleString() + ' operations...</div>';
+                
+                const startTime = Date.now();
+                const response = await fetch(API_BASE + '/images/quickstress/' + stressLevel, {
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                
+                const data = await response.json();
+                const endTime = Date.now();
+                const totalTime = endTime - startTime;
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<div class="success">' +
+                        '<strong>Quick Processing Test Completed!</strong><br>' +
+                        '<strong>Operations:</strong> ' + parseInt(data.iterations || stressLevel).toLocaleString() + '<br>' +
+                        '<strong>Server Time:</strong> ' + data.duration + '<br>' +
+                        '<strong>Total Time:</strong> ' + totalTime + 'ms<br>' +
+                        '<strong>Result:</strong> ' + data.result + '<br>' +
+                        '<em>Use sustained tests for assignment requirements</em>' +
+                        '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Quick processing test failed: ' + data.error + '</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="error">Quick processing test failed: ' + error.message + '</div>';
+            } finally {
+                stressBtn.disabled = false;
+                stressBtn.textContent = 'Run Quick Processing Test';
+                // Add these to your web interface JavaScript
+function runExtremeCPUBurn() {
+    const duration = document.getElementById('sustained-duration').value;
+    fetch(`/images/stress-extreme/${duration}`, {
+        headers: { Authorization: 'Bearer ' + authToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        console.log('EXTREME CPU burn result:', data);
+        alert(`Extreme burn completed! ${data.totalIterations} iterations`);
+    })
+    .catch(e => alert('Extreme burn failed: ' + e.message));
+}
+
+            }
+        }
+        // Add these to your web interface JavaScript
+function runExtremeCPUBurn() {
+    const duration = document.getElementById('sustained-duration').value;
+    fetch(`/images/stress-extreme/${duration}`, {
+        headers: { Authorization: 'Bearer ' + authToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+        console.log('EXTREME CPU burn result:', data);
+        alert(`Extreme burn completed! ${data.totalIterations} iterations`);
+    })
+    .catch(e => alert('Extreme burn failed: ' + e.message));
+}
+
+        // Initialize the page
+        updateAuthStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# A1 Response to Criteria — Image Upload & Retrieval API (Node.js)
+
+## REST API summary
+- POST /auth/login — returns JWT (users: user/user, admin/admin)
+- POST /images — upload multipart file -> S3, metadata -> DynamoDB
+- GET /images — list user’s images (from DynamoDB)
+- GET /images/:id/url — presigned URL to download from S3
+- DELETE /images/:id — delete S3 object + metadata
+- GET /images/stress/:n — CPU-bound loop for EC2 CPU demo
+
+## Two data types
+- Unstructured: image files stored in S3 (`users/<username>/<uuid>.<ext>`)
+- Structured: image metadata row in DynamoDB (pk/sk + attributes)
+
+## Authentication
+- JWT with hard-coded users (acceptable for A1). Bearer token required on /images/*
+
+## Docker + EC2
+- Image built and pushed to ECR; pulled and run on EC2 (port 3000).
+- Container run: `docker run -dp 3000:3000 --env-file .env <ECR image>`
+
+## CPU demonstration
+- Call `/images/stress/:n` (e.g., 80,000,000) from a client repeatedly and show EC2 Monitoring → CPU Utilization during the 5‑min video.
+
+## Testing
+- Login → Upload → List → Presign → Download → Delete
+- Load testing via `npm run loadtest <url> "Bearer <token>" 20`
