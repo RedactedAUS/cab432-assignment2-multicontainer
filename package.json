@@ -1,14 +1,15 @@
 {
   "name": "mpeg-video-processing-api",
-  "version": "1.0.0",
-  "description": "Advanced MPEG video processing REST API with CPU-intensive transcoding capabilities",
+  "version": "2.0.0",
+  "description": "Advanced MPEG video processing REST API with AWS cloud services integration",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node test-load.js",
     "docker:build": "docker build -t mpeg-api .",
-    "docker:run": "docker run -p 3000:3000 mpeg-api"
+    "docker:run": "docker run -p 3000:3000 mpeg-api",
+    "deploy": "bash deploy.sh"
   },
   "keywords": [
     "video",
@@ -17,7 +18,11 @@
     "ffmpeg",
     "rest-api",
     "cloud",
-    "aws"
+    "aws",
+    "cognito",
+    "s3",
+    "rds",
+    "assessment-2"
   ],
   "author": "n11538082",
   "license": "MIT",
@@ -25,20 +30,18 @@
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "multer": "^1.4.5-lts.1",
+    "multer-s3": "^3.0.1",
     "jsonwebtoken": "^9.0.2",
     "bcrypt": "^5.1.1",
     "fluent-ffmpeg": "^2.1.2",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
-    "sqlite3": "^5.1.6",
     "express-rate-limit": "^7.1.5",
     "axios": "^1.6.2",
     "helmet": "^7.1.0",
     "compression": "^1.7.4",
     "morgan": "^1.10.0",
     "aws-sdk": "^2.1498.0",
-    "multer-s3": "^3.0.1",
     "pg": "^8.11.3",
-    "amazon-cognito-identity-js": "^6.3.7",
     "node-cache": "^5.1.2"
   },
   "devDependencies": {
@@ -46,5 +49,13 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/mpeg-video-api.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/mpeg-video-api/issues"
+  },
+  "homepage": "https://github.com/your-username/mpeg-video-api#readme"
 }

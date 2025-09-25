@@ -81,6 +81,33 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .auth-tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .auth-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -477,9 +504,9 @@
     <div class="container">
         <div class="header">
             <h1>MPEG Video Processing Platform</h1>
-            <p>Advanced cloud-based video transcoding with CPU-intensive processing</p>
+            <p>Advanced cloud-based video transcoding with AWS Cognito Authentication</p>
             <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
-                <strong>Infrastructure:</strong> Docker Compose • PostgreSQL • SQLite • Redis • Nginx • External APIs
+                <strong>Infrastructure:</strong> AWS S3 • RDS PostgreSQL • Cognito • Parameter Store • Secrets Manager
             </p>
             <div id="user-info" class="user-info hidden">
                 <div>
@@ -492,19 +519,58 @@
 
         <!-- Authentication Section -->
         <div id="auth-section" class="auth-section">
-            <h2>Login to Your Account</h2>
-            <form id="login-form">
+            <div class="auth-tabs">
+                <div class="auth-tab active" data-auth="login">Login</div>
+                <div class="auth-tab" data-auth="register">Register</div>
+                <div class="auth-tab" data-auth="confirm">Confirm Email</div>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form active">
+                <h2>Login to Your Account</h2>
                 <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" required>
-                    <small>Try: admin, user1, or user2</small>
+                    <label for="login-username">Username</label>
+                    <input type="text" id="login-username" required>
                 </div>
                 <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required>
-                    <small>Passwords: admin123, password123, password456</small>
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required>
                 </div>
                 <button type="submit" class="btn" id="login-btn">Login</button>
+            </form>
+
+            <!-- Registration Form -->
+            <form id="register-form" class="auth-form">
+                <h2>Create New Account</h2>
+                <div class="form-group">
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" required>
+                    <small>Must be at least 8 characters with uppercase, lowercase, number, and special character</small>
+                </div>
+                <button type="submit" class="btn" id="register-btn">Register</button>
+            </form>
+
+            <!-- Email Confirmation Form -->
+            <form id="confirm-form" class="auth-form">
+                <h2>Confirm Your Email</h2>
+                <div class="form-group">
+                    <label for="confirm-username">Username</label>
+                    <input type="text" id="confirm-username" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-code">Confirmation Code</label>
+                    <input type="text" id="confirm-code" required>
+                    <small>Check your email for the 6-digit confirmation code</small>
+                </div>
+                <button type="submit" class="btn" id="confirm-btn">Confirm Email</button>
             </form>
         </div>
 
@@ -543,7 +609,7 @@
                     </div>
                     
                     <div id="admin-stats" class="admin-only hidden">
-                        <h3>System Analytics (PostgreSQL + SQLite + Redis)</h3>
+                        <h3>System Analytics (AWS RDS PostgreSQL + S3)</h3>
                         <div class="grid">
                             <div class="card stats-card">
                                 <div class="stat-number" id="admin-stat-users">0</div>
@@ -570,7 +636,7 @@
                     <div class="upload-area" id="upload-area">
                         <div class="upload-icon">📁</div>
                         <h3>Drag & Drop Video Files Here</h3>
-                        <p>Or click to browse files</p>
+                        <p>Or click to browse files (supports S3 pre-signed URLs)</p>
                         <input type="file" id="file-input" accept="video/*" multiple style="display: none;">
                     </div>
                     
@@ -632,7 +698,7 @@
                         
                         <div class="api-endpoint-demo">
                             <strong>Current API Request:</strong><br>
-                            GET <span id="current-api-url">/api/videos?page=1&limit=10&sort=created_at&order=desc</span>
+                            GET <span id="current-api-url">/api/v1/videos?page=1&limit=10&sort=created_at&order=desc</span>
                         </div>
                         
                         <div class="pagination-controls">
@@ -657,7 +723,7 @@
                 <!-- Admin Users Tab -->
                 <div id="admin-users-tab" class="tab-content admin-only">
                     <div class="admin-section section">
-                        <h2>User Management</h2>
+                        <h2>User Management (AWS Cognito)</h2>
                         <div id="users-table-container">
                             <table class="table" id="users-table">
                                 <thead>
@@ -723,12 +789,13 @@
             status: ''
         };
 
-        const API_BASE = '/api';
+        const API_BASE = '/api/v1';
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             
+            // Check for existing token
             const token = localStorage.getItem('authToken');
             if (token) {
                 authToken = token;
@@ -737,21 +804,34 @@
         });
 
         function initializeEventListeners() {
+            // Authentication event listeners
             document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('confirm-form').addEventListener('submit', handleConfirmation);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
 
+            // Auth tab switching
+            document.querySelectorAll('.auth-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    switchAuthTab(tab.dataset.auth);
+                });
+            });
+
+            // Upload functionality
             const uploadArea = document.getElementById('upload-area');
             const fileInput = document.getElementById('file-input');
             
             uploadArea.addEventListener('click', function() { fileInput.click(); });
             fileInput.addEventListener('change', handleFileSelect);
 
+            // Main tabs
             document.querySelectorAll('.tab').forEach(function(tab) {
                 tab.addEventListener('click', function() { 
                     switchTab(tab.dataset.tab); 
                 });
             });
 
+            // Video filtering and pagination
             document.getElementById('search-input').addEventListener('input', updateFilters);
             document.getElementById('sort-select').addEventListener('change', updateFilters);
             document.getElementById('order-select').addEventListener('change', updateFilters);
@@ -763,51 +843,111 @@
             document.getElementById('start-load-test').addEventListener('click', startLoadTest);
         }
 
-        function updateFilters() {
-            currentFilters = {
-                page: 1,
-                limit: parseInt(document.getElementById('limit-select').value),
-                sort: document.getElementById('sort-select').value,
-                order: document.getElementById('order-select').value,
-                search: document.getElementById('search-input').value,
-                status: document.getElementById('video-filter').value
-            };
+        function switchAuthTab(tabName) {
+            // Update tab appearance
+            document.querySelectorAll('.auth-tab').forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+            document.querySelector('[data-auth="' + tabName + '"]').classList.add('active');
+
+            // Show appropriate form
+            document.querySelectorAll('.auth-form').forEach(function(form) {
+                form.classList.remove('active');
+            });
+            document.getElementById(tabName + '-form').classList.add('active');
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
             
-            updateApiUrlDisplay();
-            loadVideosWithFilters();
-        }
+            const registerBtn = document.getElementById('register-btn');
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
 
-        function applyFilters() {
-            updateFilters();
-        }
+            if (!username || !email || !password) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
 
-        function changePage(direction) {
-            const newPage = currentFilters.page + direction;
-            if (newPage >= 1) {
-                currentFilters.page = newPage;
-                updateApiUrlDisplay();
-                loadVideosWithFilters();
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registering...';
+
+            try {
+                const response = await fetch(API_BASE + '/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Registration successful! Check your email for confirmation code.', 'success');
+                    document.getElementById('confirm-username').value = username;
+                    switchAuthTab('confirm');
+                } else {
+                    showNotification('Registration failed: ' + data.details, 'error');
+                }
+            } catch (error) {
+                console.error('Registration error:', error);
+                showNotification('Registration failed: Network error', 'error');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register';
             }
         }
 
-        function updateApiUrlDisplay() {
-            const params = new URLSearchParams();
-            Object.keys(currentFilters).forEach(function(key) {
-                if (currentFilters[key]) {
-                    params.append(key, currentFilters[key]);
-                }
-            });
+        async function handleConfirmation(e) {
+            e.preventDefault();
             
-            const url = '/api/videos?' + params.toString();
-            document.getElementById('current-api-url').textContent = url;
+            const confirmBtn = document.getElementById('confirm-btn');
+            const username = document.getElementById('confirm-username').value;
+            const confirmationCode = document.getElementById('confirm-code').value;
+
+            if (!username || !confirmationCode) {
+                showNotification('Please enter username and confirmation code', 'error');
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Confirming...';
+
+            try {
+                const response = await fetch(API_BASE + '/auth/confirm', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, confirmationCode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showNotification('Email confirmed successfully! You can now login.', 'success');
+                    document.getElementById('login-username').value = username;
+                    switchAuthTab('login');
+                } else {
+                    showNotification('Confirmation failed: ' + data.details, 'error');
+                }
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                showNotification('Confirmation failed: Network error', 'error');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Email';
+            }
         }
 
         async function handleLogin(e) {
             e.preventDefault();
             
             const loginBtn = document.getElementById('login-btn');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
 
             if (!username || !password) {
                 showNotification('Please enter username and password', 'error');
@@ -826,13 +966,9 @@
                     body: JSON.stringify({ username: username, password: password })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Login failed: ' + response.status);
-                }
-
                 const data = await response.json();
 
-                if (data.token && data.user) {
+                if (response.ok && data.token && data.user) {
                     authToken = data.token;
                     currentUser = data.user;
                     localStorage.setItem('authToken', authToken);
@@ -840,10 +976,12 @@
                     showNotification('Login successful!', 'success');
                     showMainContent();
                     loadInitialData();
+                } else {
+                    showNotification('Login failed: ' + (data.details || data.error), 'error');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showNotification('Login failed', 'error');
+                showNotification('Login failed: Network error', 'error');
             } finally {
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Login';
@@ -861,6 +999,11 @@
             
             document.querySelectorAll('.admin-only').forEach(function(el) {
                 el.classList.add('hidden');
+            });
+            
+            // Clear forms
+            document.querySelectorAll('input').forEach(input => {
+                if (input.type !== 'file') input.value = '';
             });
             
             showNotification('Logged out successfully', 'info');
@@ -910,6 +1053,13 @@
             }
         }
 
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        }
+
         async function uploadFiles(files) {
             if (!authToken) {
                 showNotification('Please login first', 'error');
@@ -939,9 +1089,10 @@
                     progressFill.style.width = progress + '%';
 
                     if (response.ok) {
-                        showNotification(file.name + ' uploaded successfully', 'success');
+                        showNotification(file.name + ' uploaded successfully to S3', 'success');
                     } else {
-                        showNotification('Upload failed: ' + file.name, 'error');
+                        const errorData = await response.json();
+                        showNotification('Upload failed: ' + file.name + ' - ' + errorData.error, 'error');
                     }
                 } catch (error) {
                     console.error('Upload error:', error);
@@ -1001,6 +1152,45 @@
             }
         }
 
+        function updateFilters() {
+            currentFilters = {
+                page: 1,
+                limit: parseInt(document.getElementById('limit-select').value),
+                sort: document.getElementById('sort-select').value,
+                order: document.getElementById('order-select').value,
+                search: document.getElementById('search-input').value,
+                status: document.getElementById('video-filter').value
+            };
+            
+            updateApiUrlDisplay();
+            loadVideosWithFilters();
+        }
+
+        function applyFilters() {
+            updateFilters();
+        }
+
+        function changePage(direction) {
+            const newPage = currentFilters.page + direction;
+            if (newPage >= 1) {
+                currentFilters.page = newPage;
+                updateApiUrlDisplay();
+                loadVideosWithFilters();
+            }
+        }
+
+        function updateApiUrlDisplay() {
+            const params = new URLSearchParams();
+            Object.keys(currentFilters).forEach(function(key) {
+                if (currentFilters[key]) {
+                    params.append(key, currentFilters[key]);
+                }
+            });
+            
+            const url = '/api/v1/videos?' + params.toString();
+            document.getElementById('current-api-url').textContent = url;
+        }
+
         async function loadVideosWithFilters() {
             if (!authToken) return;
 
@@ -1043,7 +1233,7 @@
             grid.innerHTML = '';
 
             if (videos.length === 0) {
-                grid.innerHTML = '<p>No videos match your filters. Try adjusting the search or filter criteria.</p>';
+                grid.innerHTML = '<p>No videos found. Upload some videos to get started!</p>';
                 return;
             }
 
@@ -1073,15 +1263,44 @@
                     '</div>' +
                 '</div>' +
                 '<div style="margin-top: 15px;">' +
+                    '<button class="btn btn-small" onclick="downloadVideo(' + video.id + ')">Download (Pre-signed URL)</button>' +
                     '<button class="btn btn-small" onclick="transcodeVideo(' + video.id + ')">Transcode (CPU Test)</button>' +
-                    '<button class="btn btn-secondary btn-small" onclick="getRecommendations(' + video.id + ')">Get Recommendations</button>' +
+                    '<button class="btn btn-secondary btn-small" onclick="getRecommendations(' + video.id + ')">External API</button>' +
                     (currentUser.role === 'admin' ? '<button class="btn btn-danger btn-small" onclick="deleteVideo(' + video.id + ')">Delete</button>' : '') +
                 '</div>' +
                 '<div id="recommendations-' + video.id + '" class="hidden">' +
-                    '<!-- Recommendations will be loaded here -->' +
+                    '<!-- External API results will be loaded here -->' +
                 '</div>';
 
             return card;
+        }
+
+        async function downloadVideo(videoId) {
+            if (!authToken) {
+                showNotification('Please login first', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_BASE + '/videos/' + videoId + '/download', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showNotification('Download URL generated (expires in 1 hour)', 'success');
+                    
+                    // Open download in new tab
+                    window.open(data.download_url, '_blank');
+                } else {
+                    showNotification('Failed to generate download URL', 'error');
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                showNotification('Download failed', 'error');
+            }
         }
 
         async function getRecommendations(videoId) {
@@ -1091,7 +1310,7 @@
             }
 
             const recommendationsContainer = document.getElementById('recommendations-' + videoId);
-            recommendationsContainer.innerHTML = '<h4>Fetching Related Content from External API...</h4><div class="loading"></div>';
+            recommendationsContainer.innerHTML = '<h4>Fetching Content from External API...</h4><div class="loading"></div>';
             recommendationsContainer.classList.remove('hidden');
 
             try {
@@ -1104,14 +1323,14 @@
                 if (response.ok) {
                     const data = await response.json();
                     displayRecommendations(videoId, data);
-                    showNotification('External recommendations loaded!', 'success');
+                    showNotification('External API data loaded successfully!', 'success');
                 } else {
-                    showNotification('Failed to load recommendations', 'error');
+                    showNotification('Failed to load external data', 'error');
                     recommendationsContainer.classList.add('hidden');
                 }
             } catch (error) {
-                console.error('Recommendations error:', error);
-                showNotification('Error loading recommendations', 'error');
+                console.error('External API error:', error);
+                showNotification('External API error', 'error');
                 recommendationsContainer.classList.add('hidden');
             }
         }
@@ -1119,9 +1338,9 @@
         function displayRecommendations(videoId, data) {
             const container = document.getElementById('recommendations-' + videoId);
             
-            let html = '<h4>Related Content from ' + data.source + '</h4>' +
+            let html = '<h4>External API Data from ' + data.source + '</h4>' +
                 '<p><strong>Search Query:</strong> "' + data.search_query + '"</p>' +
-                '<p><strong>Total Results:</strong> ' + (data.total_results || 'Unknown') + '</p>';
+                '<p><strong>Results:</strong> ' + (data.total_results || 'Unknown') + '</p>';
 
             if (data.recommendations && data.recommendations.length > 0) {
                 html += '<div style="margin-top: 15px;">';
@@ -1130,14 +1349,14 @@
                         '<h5>' + rec.title + '</h5>' +
                         '<p>' + rec.description + '</p>';
                     
-                    if (rec.rating) {
+                    if (rec.rating && rec.rating !== 'N/A') {
                         html += '<p><strong>Rating:</strong> ' + rec.rating + '/10</p>';
                     }
                     html += '</div>';
                 });
                 html += '</div>';
             } else {
-                html += '<p>No recommendations found for this video.</p>';
+                html += '<p>No additional data found for this video.</p>';
             }
 
             container.innerHTML = html;
@@ -1165,10 +1384,12 @@
                 });
 
                 if (response.ok) {
-                    showNotification('Transcoding started! Check Processing Jobs tab.', 'success');
-                    switchTab('processing');
+                    const data = await response.json();
+                    showNotification('Transcoding job created! Check Processing Jobs tab.', 'success');
+                    console.log('Job created:', data);
                 } else {
-                    showNotification('Transcoding failed', 'error');
+                    const errorData = await response.json();
+                    showNotification('Transcoding failed: ' + errorData.error, 'error');
                 }
             } catch (error) {
                 console.error('Transcoding error:', error);
@@ -1176,14 +1397,13 @@
             }
         }
 
-        async function deleteVideo(videoId, isAdminAction) {
+        async function deleteVideo(videoId) {
             if (!confirm('Are you sure you want to delete this video?')) {
                 return;
             }
 
             try {
-                const endpoint = isAdminAction ? API_BASE + '/admin/videos/' + videoId : API_BASE + '/videos/' + videoId;
-                const response = await fetch(endpoint, {
+                const response = await fetch(API_BASE + '/videos/' + videoId, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': 'Bearer ' + authToken
@@ -1204,7 +1424,8 @@
         }
 
         async function loadAdminData() {
-            // Simplified admin data loading
+            // Load admin-specific data if needed
+            console.log('Loading admin data...');
         }
 
         async function startLoadTest() {
@@ -1230,25 +1451,27 @@
                         'Authorization': 'Bearer ' + authToken,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ cores: 2 })
+                    body: JSON.stringify({ cores: 2, duration: 300 })
                 });
 
                 if (response.ok) {
                     const result = await response.json();
-                    showNotification('Load test started!', 'success');
+                    showNotification('Load test started successfully!', 'success');
                     
                     document.getElementById('load-test-output').innerHTML = 
                         '<p><strong>Duration:</strong> ' + result.duration + ' seconds</p>' +
                         '<p><strong>CPU Cores:</strong> ' + result.cores + '</p>' +
+                        '<p><strong>Job ID:</strong> ' + result.job_id + '</p>' +
                         '<p><strong>Started:</strong> ' + new Date(result.started_at).toLocaleString() + '</p>';
                     
                     resultsDiv.classList.remove('hidden');
                 } else {
-                    showNotification('Load test failed', 'error');
+                    const errorData = await response.json();
+                    showNotification('Load test failed: ' + errorData.error, 'error');
                 }
             } catch (error) {
                 console.error('Load test error:', error);
-                showNotification('Load test failed', 'error');
+                showNotification('Load test failed: Network error', 'error');
             } finally {
                 button.disabled = false;
                 statusDiv.classList.add('hidden');
@@ -1273,7 +1496,67 @@
                 case 'videos':
                     loadVideosWithFilters();
                     break;
+                case 'processing':
+                    loadProcessingJobs();
+                    break;
             }
+        }
+
+        async function loadProcessingJobs() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(API_BASE + '/jobs', {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayProcessingJobs(data.data || []);
+                }
+            } catch (error) {
+                console.error('Error loading processing jobs:', error);
+            }
+        }
+
+        function displayProcessingJobs(jobs) {
+            const container = document.getElementById('jobs-list');
+            
+            if (jobs.length === 0) {
+                container.innerHTML = '<p>No processing jobs found. Start some transcoding tasks to see them here.</p>';
+                return;
+            }
+
+            let html = '<h3>Processing Jobs</h3><div class="grid">';
+            
+            jobs.forEach(function(job) {
+                const progressWidth = job.progress || 0;
+                const statusClass = 'status-' + (job.status || 'pending');
+                
+                html += '<div class="card">' +
+                    '<h4>Job #' + job.id + '</h4>' +
+                    '<p><strong>Video:</strong> ' + (job.original_filename || 'Unknown') + '</p>' +
+                    '<p><strong>Type:</strong> ' + job.job_type + '</p>' +
+                    '<p><strong>Status:</strong> <span class="status-badge ' + statusClass + '">' + job.status + '</span></p>' +
+                    '<p><strong>Progress:</strong> ' + progressWidth + '%</p>' +
+                    '<div class="progress-bar"><div class="progress-fill" style="width: ' + progressWidth + '%"></div></div>' +
+                    '<p><strong>Created:</strong> ' + new Date(job.created_at).toLocaleString() + '</p>';
+                
+                if (job.cpu_time) {
+                    html += '<p><strong>Processing Time:</strong> ' + job.cpu_time + 's</p>';
+                }
+                
+                if (job.status === 'completed' && job.download_url) {
+                    html += '<button class="btn btn-small" onclick="window.open(\'' + job.download_url + '\', \'_blank\')">Download Result</button>';
+                }
+                
+                html += '</div>';
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         function showNotification(message, type) {
