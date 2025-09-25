@@ -11,7 +11,7 @@ class ExternalAPIService {
   // EXTERNAL API 1: OMDB Movie Database API
   async getMovieInfo(title) {
     try {
-      console.log(`🌐 EXTERNAL API CALL: Fetching movie info for "${title}"`);
+      console.log(`ðŸŒ EXTERNAL API CALL: Fetching movie info for "${title}"`);
       
       const response = await axios.get('http://www.omdbapi.com/', {
         params: {
@@ -26,7 +26,7 @@ class ExternalAPIService {
         throw new Error('Movie not found in OMDB');
       }
 
-      console.log(`✅ EXTERNAL API SUCCESS: Got movie data for "${title}"`);
+      console.log(`âœ… EXTERNAL API SUCCESS: Got movie data for "${title}"`);
       
       return {
         source: 'omdb_api',
@@ -44,7 +44,7 @@ class ExternalAPIService {
       };
 
     } catch (error) {
-      console.error(`❌ EXTERNAL API ERROR (OMDB):`, error.message);
+      console.error(`âŒ EXTERNAL API ERROR (OMDB):`, error.message);
       throw new Error(`OMDB API Error: ${error.message}`);
     }
   }
@@ -52,7 +52,7 @@ class ExternalAPIService {
   // EXTERNAL API 2: JSONPlaceholder for Mock Video Comments/Reviews
   async getVideoReviews(videoId) {
     try {
-      console.log(`🌐 EXTERNAL API CALL: Fetching reviews for video ${videoId}`);
+      console.log(`ðŸŒ EXTERNAL API CALL: Fetching reviews for video ${videoId}`);
       
       const response = await axios.get('https://jsonplaceholder.typicode.com/comments', {
         params: {
@@ -61,7 +61,7 @@ class ExternalAPIService {
         timeout: this.timeout
       });
 
-      console.log(`✅ EXTERNAL API SUCCESS: Got ${response.data.length} reviews`);
+      console.log(`âœ… EXTERNAL API SUCCESS: Got ${response.data.length} reviews`);
       
       return response.data.map(comment => ({
         source: 'jsonplaceholder_api',
@@ -73,7 +73,7 @@ class ExternalAPIService {
       }));
 
     } catch (error) {
-      console.error(`❌ EXTERNAL API ERROR (JSONPlaceholder):`, error.message);
+      console.error(`âŒ EXTERNAL API ERROR (JSONPlaceholder):`, error.message);
       throw new Error(`Reviews API Error: ${error.message}`);
     }
   }
@@ -81,13 +81,13 @@ class ExternalAPIService {
   // EXTERNAL API 3: Cat Facts API for Random Content Generation
   async getRandomContent() {
     try {
-      console.log(`🌐 EXTERNAL API CALL: Fetching random content`);
+      console.log(`ðŸŒ EXTERNAL API CALL: Fetching random content`);
       
       const response = await axios.get('https://catfact.ninja/fact', {
         timeout: this.timeout
       });
 
-      console.log(`✅ EXTERNAL API SUCCESS: Got random content`);
+      console.log(`âœ… EXTERNAL API SUCCESS: Got random content`);
       
       return {
         source: 'catfacts_api',
@@ -98,7 +98,7 @@ class ExternalAPIService {
       };
 
     } catch (error) {
-      console.error(`❌ EXTERNAL API ERROR (Cat Facts):`, error.message);
+      console.error(`âŒ EXTERNAL API ERROR (Cat Facts):`, error.message);
       throw new Error(`Random Content API Error: ${error.message}`);
     }
   }
@@ -106,7 +106,7 @@ class ExternalAPIService {
   // EXTERNAL API 4: REST Countries API for Location-based Content
   async getCountryInfo(countryCode) {
     try {
-      console.log(`🌐 EXTERNAL API CALL: Fetching country info for ${countryCode}`);
+      console.log(`ðŸŒ EXTERNAL API CALL: Fetching country info for ${countryCode}`);
       
       const response = await axios.get(`https://restcountries.com/v3.1/alpha/${countryCode}`, {
         timeout: this.timeout
@@ -114,7 +114,7 @@ class ExternalAPIService {
 
       const country = response.data[0];
       
-      console.log(`✅ EXTERNAL API SUCCESS: Got country data for ${country.name.common}`);
+      console.log(`âœ… EXTERNAL API SUCCESS: Got country data for ${country.name.common}`);
       
       return {
         source: 'restcountries_api',
@@ -130,7 +130,7 @@ class ExternalAPIService {
       };
 
     } catch (error) {
-      console.error(`❌ EXTERNAL API ERROR (REST Countries):`, error.message);
+      console.error(`âŒ EXTERNAL API ERROR (REST Countries):`, error.message);
       throw new Error(`Country API Error: ${error.message}`);
     }
   }
@@ -138,13 +138,13 @@ class ExternalAPIService {
   // EXTERNAL API 5: Advice Slip API for Content Suggestions
   async getAdvice() {
     try {
-      console.log(`🌐 EXTERNAL API CALL: Fetching advice`);
+      console.log(`ðŸŒ EXTERNAL API CALL: Fetching advice`);
       
       const response = await axios.get('https://api.adviceslip.com/advice', {
         timeout: this.timeout
       });
 
-      console.log(`✅ EXTERNAL API SUCCESS: Got advice`);
+      console.log(`âœ… EXTERNAL API SUCCESS: Got advice`);
       
       return {
         source: 'adviceslip_api',
@@ -154,7 +154,7 @@ class ExternalAPIService {
       };
 
     } catch (error) {
-      console.error(`❌ EXTERNAL API ERROR (Advice Slip):`, error.message);
+      console.error(`âŒ EXTERNAL API ERROR (Advice Slip):`, error.message);
       throw new Error(`Advice API Error: ${error.message}`);
     }
   }
