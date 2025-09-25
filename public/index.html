@@ -19,7 +19,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
@@ -363,6 +363,11 @@
             color: #c53030;
         }
 
+        .status-uploaded {
+            background: #bee3f8;
+            color: #2b6cb0;
+        }
+
         .admin-section {
             background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
             color: white;
@@ -370,6 +375,75 @@
 
         .admin-section h2 {
             color: white;
+        }
+
+        /* API Features Demonstration Styles */
+        .api-features-demo {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-features-demo h3 {
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .controls-grid .form-group {
+            margin-bottom: 0;
+        }
+
+        .controls-grid label {
+            color: white;
+            font-weight: 600;
+        }
+
+        .controls-grid select,
+        .controls-grid input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .controls-grid select:focus,
+        .controls-grid input:focus {
+            background: white;
+            border-color: #667eea;
+        }
+
+        .pagination-info {
+            text-align: center;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .api-endpoint-demo {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 768px) {
@@ -382,6 +456,10 @@
             }
             
             .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -398,8 +476,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎬 MPEG Video Processing Platform</h1>
+            <h1>MPEG Video Processing Platform</h1>
             <p>Advanced cloud-based video transcoding with CPU-intensive processing</p>
+            <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
+                <strong>Infrastructure:</strong> Docker Compose â€¢ PostgreSQL â€¢ SQLite â€¢ Redis â€¢ Nginx â€¢ External APIs
+            </p>
             <div id="user-info" class="user-info hidden">
                 <div>
                     <span>Welcome, <strong id="username-display"></strong></span>
@@ -431,13 +512,13 @@
         <div id="main-content" class="main-content">
             <div class="section">
                 <div class="tabs">
-                    <div class="tab active" data-tab="analytics">Analytics</div>
+                    <div class="tab active" data-tab="analytics">Analytics Dashboard</div>
                     <div class="tab" data-tab="upload">Upload Videos</div>
-                    <div class="tab" data-tab="videos">My Videos</div>
+                    <div class="tab" data-tab="videos">Advanced Video Browser</div>
                     <div class="tab" data-tab="processing">Processing Jobs</div>
                     <div class="tab admin-only hidden" data-tab="admin-users">Manage Users</div>
                     <div class="tab admin-only hidden" data-tab="admin-videos">All Videos</div>
-                    <div class="tab admin-only hidden" data-tab="load-test">Load Test</div>
+                    <div class="tab admin-only hidden" data-tab="load-test">CPU Load Test</div>
                 </div>
 
                 <!-- Analytics Tab -->
@@ -462,23 +543,23 @@
                     </div>
                     
                     <div id="admin-stats" class="admin-only hidden">
-                        <h3>System Statistics</h3>
+                        <h3>System Analytics (PostgreSQL + SQLite + Redis)</h3>
                         <div class="grid">
                             <div class="card stats-card">
                                 <div class="stat-number" id="admin-stat-users">0</div>
                                 <div class="stat-label">Total Users</div>
                             </div>
                             <div class="card stats-card">
-                                <div class="stat-number" id="admin-stat-active">0</div>
-                                <div class="stat-label">Active Jobs</div>
+                                <div class="stat-number" id="admin-stat-analyzed">0</div>
+                                <div class="stat-label">Analyzed Videos</div>
                             </div>
                             <div class="card stats-card">
-                                <div class="stat-number" id="admin-stat-failed">0</div>
-                                <div class="stat-label">Failed Jobs</div>
+                                <div class="stat-number" id="admin-stat-processing-time">0s</div>
+                                <div class="stat-label">Avg Processing Time</div>
                             </div>
                             <div class="card stats-card">
-                                <div class="stat-number" id="admin-stat-storage">0</div>
-                                <div class="stat-label">Total Storage (MB)</div>
+                                <div class="stat-number" id="admin-stat-compression">0x</div>
+                                <div class="stat-label">Avg Compression Ratio</div>
                             </div>
                         </div>
                     </div>
@@ -487,7 +568,7 @@
                 <!-- Upload Tab -->
                 <div id="upload-tab" class="tab-content">
                     <div class="upload-area" id="upload-area">
-                        <div class="upload-icon">📁</div>
+                        <div class="upload-icon">ðŸ“</div>
                         <h3>Drag & Drop Video Files Here</h3>
                         <p>Or click to browse files</p>
                         <input type="file" id="file-input" accept="video/*" multiple style="display: none;">
@@ -501,21 +582,69 @@
                     </div>
                 </div>
 
-                <!-- Videos Tab -->
+                <!-- Enhanced Videos Tab with Prominent API Features -->
                 <div id="videos-tab" class="tab-content">
-                    <div class="form-group">
-                        <label for="video-filter">Filter by Status</label>
-                        <select id="video-filter">
-                            <option value="">All Videos</option>
-                            <option value="uploaded">Uploaded</option>
-                            <option value="processing">Processing</option>
-                            <option value="completed">Completed</option>
-                        </select>
+                    <div class="api-features-demo">
+                        <h3>REST API Features Demonstration</h3>
+                        <div class="controls-grid">
+                            <div class="form-group">
+                                <label>Search Videos:</label>
+                                <input type="text" id="search-input" placeholder="Search by filename...">
+                            </div>
+                            <div class="form-group">
+                                <label>Sort by:</label>
+                                <select id="sort-select">
+                                    <option value="created_at">Upload Date</option>
+                                    <option value="file_size">File Size</option>
+                                    <option value="duration">Duration</option>
+                                    <option value="original_filename">Name</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Order:</label>
+                                <select id="order-select">
+                                    <option value="desc">Descending</option>
+                                    <option value="asc">Ascending</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Page Size:</label>
+                                <select id="limit-select">
+                                    <option value="5">5 per page</option>
+                                    <option value="10">10 per page</option>
+                                    <option value="20">20 per page</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Status Filter:</label>
+                                <select id="video-filter">
+                                    <option value="">All Videos</option>
+                                    <option value="uploaded">Uploaded</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="completed">Completed</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="pagination-info">
+                            <span id="pagination-display">Page 1 of 1 (0 total videos)</span>
+                        </div>
+                        
+                        <div class="api-endpoint-demo">
+                            <strong>Current API Request:</strong><br>
+                            GET <span id="current-api-url">/api/videos?page=1&limit=10&sort=created_at&order=desc</span>
+                        </div>
+                        
+                        <div class="pagination-controls">
+                            <button id="prev-page" class="btn btn-secondary">â† Previous</button>
+                            <button id="apply-filters" class="btn">Apply Filters</button>
+                            <button id="next-page" class="btn btn-secondary">Next â†’</button>
+                        </div>
                     </div>
+
                     <div id="videos-grid" class="grid">
                         <!-- Videos will be loaded here -->
                     </div>
-                    <button id="load-more-videos" class="btn btn-secondary">Load More</button>
                 </div>
 
                 <!-- Processing Jobs Tab -->
@@ -585,17 +714,21 @@
         // Global variables
         let currentUser = null;
         let authToken = null;
-        let currentPage = 1;
-        let isLoading = false;
+        let currentFilters = {
+            page: 1,
+            limit: 10,
+            sort: 'created_at',
+            order: 'desc',
+            search: '',
+            status: ''
+        };
 
-        // API base URL
         const API_BASE = '/api';
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             
-            // Check for existing token
             const token = localStorage.getItem('authToken');
             if (token) {
                 authToken = token;
@@ -604,32 +737,71 @@
         });
 
         function initializeEventListeners() {
-            // Authentication
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
 
-            // File upload
             const uploadArea = document.getElementById('upload-area');
             const fileInput = document.getElementById('file-input');
             
-            uploadArea.addEventListener('click', () => fileInput.click());
-            uploadArea.addEventListener('dragover', handleDragOver);
-            uploadArea.addEventListener('dragleave', handleDragLeave);
-            uploadArea.addEventListener('drop', handleDrop);
+            uploadArea.addEventListener('click', function() { fileInput.click(); });
             fileInput.addEventListener('change', handleFileSelect);
 
-            // Tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            document.querySelectorAll('.tab').forEach(function(tab) {
+                tab.addEventListener('click', function() { 
+                    switchTab(tab.dataset.tab); 
+                });
             });
 
-            // Controls
-            document.getElementById('video-filter').addEventListener('change', loadVideos);
-            document.getElementById('load-more-videos').addEventListener('click', loadMoreVideos);
+            document.getElementById('search-input').addEventListener('input', updateFilters);
+            document.getElementById('sort-select').addEventListener('change', updateFilters);
+            document.getElementById('order-select').addEventListener('change', updateFilters);
+            document.getElementById('limit-select').addEventListener('change', updateFilters);
+            document.getElementById('video-filter').addEventListener('change', updateFilters);
+            document.getElementById('apply-filters').addEventListener('click', applyFilters);
+            document.getElementById('prev-page').addEventListener('click', function() { changePage(-1); });
+            document.getElementById('next-page').addEventListener('click', function() { changePage(1); });
             document.getElementById('start-load-test').addEventListener('click', startLoadTest);
         }
 
-        // Authentication functions
+        function updateFilters() {
+            currentFilters = {
+                page: 1,
+                limit: parseInt(document.getElementById('limit-select').value),
+                sort: document.getElementById('sort-select').value,
+                order: document.getElementById('order-select').value,
+                search: document.getElementById('search-input').value,
+                status: document.getElementById('video-filter').value
+            };
+            
+            updateApiUrlDisplay();
+            loadVideosWithFilters();
+        }
+
+        function applyFilters() {
+            updateFilters();
+        }
+
+        function changePage(direction) {
+            const newPage = currentFilters.page + direction;
+            if (newPage >= 1) {
+                currentFilters.page = newPage;
+                updateApiUrlDisplay();
+                loadVideosWithFilters();
+            }
+        }
+
+        function updateApiUrlDisplay() {
+            const params = new URLSearchParams();
+            Object.keys(currentFilters).forEach(function(key) {
+                if (currentFilters[key]) {
+                    params.append(key, currentFilters[key]);
+                }
+            });
+            
+            const url = '/api/videos?' + params.toString();
+            document.getElementById('current-api-url').textContent = url;
+        }
+
         async function handleLogin(e) {
             e.preventDefault();
             
@@ -646,17 +818,16 @@
             loginBtn.textContent = 'Logging in...';
 
             try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
+                const response = await fetch(API_BASE + '/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username: username, password: password })
                 });
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Login failed: ${response.status}`);
+                    throw new Error('Login failed: ' + response.status);
                 }
 
                 const data = await response.json();
@@ -669,12 +840,10 @@
                     showNotification('Login successful!', 'success');
                     showMainContent();
                     loadInitialData();
-                } else {
-                    throw new Error('Invalid response format');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                showNotification(error.message || 'Login failed', 'error');
+                showNotification('Login failed', 'error');
             } finally {
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Login';
@@ -690,8 +859,7 @@
             document.getElementById('main-content').style.display = 'none';
             document.getElementById('user-info').classList.add('hidden');
             
-            // Hide admin elements
-            document.querySelectorAll('.admin-only').forEach(el => {
+            document.querySelectorAll('.admin-only').forEach(function(el) {
                 el.classList.add('hidden');
             });
             
@@ -702,9 +870,9 @@
             if (!authToken) return false;
 
             try {
-                const response = await fetch(`${API_BASE}/auth/me`, {
+                const response = await fetch(API_BASE + '/auth/me', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     }
                 });
 
@@ -730,47 +898,16 @@
             document.getElementById('main-content').style.display = 'block';
             document.getElementById('user-info').classList.remove('hidden');
             
-            // Update user info
             document.getElementById('username-display').textContent = currentUser.username;
             const roleBadge = document.getElementById('role-badge');
             roleBadge.textContent = currentUser.role.toUpperCase();
-            roleBadge.className = `user-badge ${currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular'}`;
+            roleBadge.className = 'user-badge ' + (currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular');
             
-            // Show admin elements if user is admin
             if (currentUser.role === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(el => {
+                document.querySelectorAll('.admin-only').forEach(function(el) {
                     el.classList.remove('hidden');
                 });
             }
-        }
-
-        // File upload functions
-        function handleDragOver(e) {
-            e.preventDefault();
-            e.currentTarget.classList.add('dragover');
-        }
-
-        function handleDragLeave(e) {
-            e.currentTarget.classList.remove('dragover');
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            e.currentTarget.classList.remove('dragover');
-            
-            const files = Array.from(e.dataTransfer.files);
-            const videoFiles = files.filter(file => file.type.startsWith('video/'));
-            
-            if (videoFiles.length > 0) {
-                uploadFiles(videoFiles);
-            } else {
-                showNotification('Please select video files only', 'error');
-            }
-        }
-
-        function handleFileSelect(e) {
-            const files = Array.from(e.target.files);
-            uploadFiles(files);
         }
 
         async function uploadFiles(files) {
@@ -790,55 +927,52 @@
                 formData.append('video', file);
 
                 try {
-                    const response = await fetch(`${API_BASE}/videos/upload`, {
+                    const response = await fetch(API_BASE + '/videos/upload', {
                         method: 'POST',
                         headers: {
-                            'Authorization': `Bearer ${authToken}`
+                            'Authorization': 'Bearer ' + authToken
                         },
                         body: formData
                     });
 
                     const progress = ((i + 1) / files.length) * 100;
-                    progressFill.style.width = `${progress}%`;
+                    progressFill.style.width = progress + '%';
 
                     if (response.ok) {
-                        const result = await response.json();
-                        showNotification(`${file.name} uploaded successfully`, 'success');
+                        showNotification(file.name + ' uploaded successfully', 'success');
                     } else {
-                        const errorText = await response.text();
-                        showNotification(`Upload failed: ${file.name}`, 'error');
+                        showNotification('Upload failed: ' + file.name, 'error');
                     }
                 } catch (error) {
                     console.error('Upload error:', error);
-                    showNotification(`Upload error: ${file.name}`, 'error');
+                    showNotification('Upload error: ' + file.name, 'error');
                 }
             }
 
             progressContainer.classList.add('hidden');
             progressFill.style.width = '0%';
             
-            // Refresh analytics and videos
             loadAnalytics();
             if (document.getElementById('videos-tab').classList.contains('active')) {
-                loadVideos();
+                loadVideosWithFilters();
             }
         }
 
-        // Data loading functions
         async function loadInitialData() {
             loadAnalytics();
             if (currentUser.role === 'admin') {
                 loadAdminData();
             }
+            updateApiUrlDisplay();
         }
 
         async function loadAnalytics() {
             if (!authToken) return;
 
             try {
-                const response = await fetch(`${API_BASE}/analytics`, {
+                const response = await fetch(API_BASE + '/analytics', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     }
                 });
 
@@ -846,52 +980,61 @@
                     const data = await response.json();
                     
                     if (currentUser.role === 'admin' && data.system_stats) {
-                        // Admin view
                         document.getElementById('stat-videos').textContent = data.system_stats.total_videos;
                         document.getElementById('stat-jobs').textContent = data.system_stats.total_jobs;
                         document.getElementById('stat-success').textContent = data.system_stats.success_rate;
                         document.getElementById('stat-size').textContent = data.system_stats.total_storage_mb;
                         
-                        // Additional admin stats
                         document.getElementById('admin-stat-users').textContent = data.system_stats.total_users;
-                        document.getElementById('admin-stat-active').textContent = data.system_stats.active_jobs;
-                        document.getElementById('admin-stat-failed').textContent = data.system_stats.failed_jobs;
-                        document.getElementById('admin-stat-storage').textContent = data.system_stats.total_storage_mb;
+                        document.getElementById('admin-stat-analyzed').textContent = data.system_stats.analyzed_videos || 0;
+                        document.getElementById('admin-stat-processing-time').textContent = (data.system_stats.avg_processing_time || 0) + 's';
+                        document.getElementById('admin-stat-compression').textContent = (data.system_stats.avg_compression_ratio || 0) + 'x';
                     } else if (data.user_stats) {
-                        // Regular user view
                         document.getElementById('stat-videos').textContent = data.user_stats.totalVideos;
                         document.getElementById('stat-jobs').textContent = data.user_stats.totalJobs;
                         document.getElementById('stat-success').textContent = data.user_stats.successRate;
                         document.getElementById('stat-size').textContent = data.user_stats.totalSize;
                     }
-                } else {
-                    console.error('Failed to load analytics:', response.status);
                 }
             } catch (error) {
                 console.error('Error loading analytics:', error);
             }
         }
 
-        async function loadVideos(reset = true) {
+        async function loadVideosWithFilters() {
             if (!authToken) return;
 
             try {
-                const response = await fetch(`${API_BASE}/videos?page=1&limit=10`, {
+                const params = new URLSearchParams();
+                Object.keys(currentFilters).forEach(function(key) {
+                    if (currentFilters[key]) {
+                        params.append(key, currentFilters[key]);
+                    }
+                });
+
+                const response = await fetch(API_BASE + '/videos?' + params.toString(), {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
                     displayVideos(data.videos || []);
-                } else {
-                    console.error('Failed to load videos:', response.status);
-                    showNotification('Failed to load videos', 'error');
+                    updatePaginationDisplay(data.pagination);
                 }
             } catch (error) {
                 console.error('Error loading videos:', error);
-                showNotification('Error loading videos', 'error');
+            }
+        }
+
+        function updatePaginationDisplay(pagination) {
+            if (pagination) {
+                document.getElementById('pagination-display').textContent = 
+                    'Page ' + pagination.page + ' of ' + pagination.pages + ' (' + pagination.total + ' total videos)';
+                
+                document.getElementById('prev-page').disabled = pagination.page <= 1;
+                document.getElementById('next-page').disabled = pagination.page >= pagination.pages;
             }
         }
 
@@ -900,11 +1043,11 @@
             grid.innerHTML = '';
 
             if (videos.length === 0) {
-                grid.innerHTML = '<p>No videos uploaded yet. Use the Upload Videos tab to get started!</p>';
+                grid.innerHTML = '<p>No videos match your filters. Try adjusting the search or filter criteria.</p>';
                 return;
             }
 
-            videos.forEach(video => {
+            videos.forEach(function(video) {
                 const videoCard = createVideoCard(video);
                 grid.appendChild(videoCard);
             });
@@ -915,306 +1058,91 @@
             card.className = 'card';
             
             const sizeInMB = video.file_size ? (video.file_size / (1024 * 1024)).toFixed(2) : 'Unknown';
-            const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : 'Unknown';
+            const duration = video.duration ? Math.floor(video.duration / 60) + ':' + String(Math.floor(video.duration % 60)).padStart(2, '0') : 'Unknown';
 
-            card.innerHTML = `
-                <div class="video-info">
-                    <h3>${video.original_filename || video.filename}</h3>
-                    <div class="video-meta">
-                        📁 ${sizeInMB} MB • ⏱️ ${duration} • 📺 ${video.width || '?'}x${video.height || '?'}
-                    </div>
-                    <div style="margin-top: 10px;">
-                        <span class="status-badge status-${video.status || 'uploaded'}">
-                            ${video.status || 'uploaded'}
-                        </span>
-                    </div>
-                </div>
-                <div style="margin-top: 15px;">
-                    <button class="btn btn-small" onclick="transcodeVideo(${video.id})">Transcode (CPU Test)</button>
-                    <button class="btn btn-secondary btn-small" onclick="analyzeVideo(${video.id})">Analyze</button>
-                    ${currentUser.role === 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteVideo(${video.id})">Delete</button>` : ''}
-                </div>
-            `;
+            card.innerHTML = 
+                '<div class="video-info">' +
+                    '<h3>' + (video.original_filename || video.filename) + '</h3>' +
+                    '<div class="video-meta">' +
+                        'Size: ' + sizeInMB + ' MB | Duration: ' + duration + ' | Resolution: ' + (video.width || '?') + 'x' + (video.height || '?') +
+                    '</div>' +
+                    '<div style="margin-top: 10px;">' +
+                        '<span class="status-badge status-' + (video.status || 'uploaded') + '">' +
+                            (video.status || 'uploaded') +
+                        '</span>' +
+                    '</div>' +
+                '</div>' +
+                '<div style="margin-top: 15px;">' +
+                    '<button class="btn btn-small" onclick="transcodeVideo(' + video.id + ')">Transcode (CPU Test)</button>' +
+                    '<button class="btn btn-secondary btn-small" onclick="getRecommendations(' + video.id + ')">Get Recommendations</button>' +
+                    (currentUser.role === 'admin' ? '<button class="btn btn-danger btn-small" onclick="deleteVideo(' + video.id + ')">Delete</button>' : '') +
+                '</div>' +
+                '<div id="recommendations-' + video.id + '" class="hidden">' +
+                    '<!-- Recommendations will be loaded here -->' +
+                '</div>';
 
             return card;
         }
 
-        async function loadJobs() {
-            if (!authToken) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/jobs`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    displayJobs(data.jobs || []);
-                } else {
-                    console.error('Failed to load jobs:', response.status);
-                }
-            } catch (error) {
-                console.error('Error loading jobs:', error);
-            }
-        }
-
-        function displayJobs(jobs) {
-            const container = document.getElementById('jobs-list');
-            
-            if (jobs.length === 0) {
-                container.innerHTML = '<p>No processing jobs yet. Start by transcoding a video!</p>';
+        async function getRecommendations(videoId) {
+            if (!authToken) {
+                showNotification('Please login first', 'error');
                 return;
             }
 
-            // Create table element safely
-            const table = document.createElement('table');
-            table.className = 'table';
-            
-            // Create header
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            
-            const headers = ['Job ID', 'Video', ...(currentUser.role === 'admin' ? ['User'] : []), 'Type', 'Status', 'Progress', 'Started', 'Actions'];
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Create body
-            const tbody = document.createElement('tbody');
-            jobs.forEach(job => {
-                const row = document.createElement('tr');
-                
-                // Job ID
-                const jobIdCell = document.createElement('td');
-                jobIdCell.textContent = job.id;
-                row.appendChild(jobIdCell);
-                
-                // Video name
-                const videoCell = document.createElement('td');
-                videoCell.textContent = job.original_filename || 'Unknown';
-                row.appendChild(videoCell);
-                
-                // User (admin only)
-                if (currentUser.role === 'admin') {
-                    const userCell = document.createElement('td');
-                    userCell.textContent = job.username || 'Unknown';
-                    row.appendChild(userCell);
-                }
-                
-                // Job type
-                const typeCell = document.createElement('td');
-                typeCell.textContent = job.job_type;
-                row.appendChild(typeCell);
-                
-                // Status
-                const statusCell = document.createElement('td');
-                const statusSpan = document.createElement('span');
-                statusSpan.className = `status-badge status-${job.status}`;
-                statusSpan.textContent = job.status;
-                statusCell.appendChild(statusSpan);
-                row.appendChild(statusCell);
-                
-                // Progress
-                const progressCell = document.createElement('td');
-                progressCell.textContent = `${job.progress || 0}%`;
-                row.appendChild(progressCell);
-                
-                // Started
-                const startedCell = document.createElement('td');
-                startedCell.textContent = new Date(job.started_at).toLocaleString();
-                row.appendChild(startedCell);
-                
-                // Actions
-                const actionsCell = document.createElement('td');
-                if (job.status === 'completed') {
-                    const downloadBtn = document.createElement('button');
-                    downloadBtn.className = 'btn btn-small';
-                    downloadBtn.textContent = 'Download';
-                    downloadBtn.onclick = () => downloadFile(job.video_id, job.id);
-                    actionsCell.appendChild(downloadBtn);
-                } else if (job.status === 'processing') {
-                    const loadingSpan = document.createElement('span');
-                    loadingSpan.className = 'loading';
-                    actionsCell.appendChild(loadingSpan);
-                } else if (job.error_message) {
-                    const errorSpan = document.createElement('span');
-                    errorSpan.textContent = 'Error';
-                    errorSpan.style.color = 'red';
-                    errorSpan.title = job.error_message;
-                    actionsCell.appendChild(errorSpan);
-                } else {
-                    actionsCell.textContent = '-';
-                }
-                row.appendChild(actionsCell);
-                
-                tbody.appendChild(row);
-            });
-            table.appendChild(tbody);
-            
-            container.innerHTML = '';
-            container.appendChild(table);
-        }
+            const recommendationsContainer = document.getElementById('recommendations-' + videoId);
+            recommendationsContainer.innerHTML = '<h4>Fetching Related Content from External API...</h4><div class="loading"></div>';
+            recommendationsContainer.classList.remove('hidden');
 
-        async function loadAdminData() {
-            if (currentUser.role !== 'admin') return;
-            
-            await loadAdminUsers();
-            await loadAdminVideos();
-        }
-
-        async function loadAdminUsers() {
             try {
-                const response = await fetch(`${API_BASE}/admin/users`, {
+                const response = await fetch(API_BASE + '/videos/' + videoId + '/recommendations', {
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     }
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    displayAdminUsers(data.users || []);
-                }
-            } catch (error) {
-                console.error('Error loading admin users:', error);
-            }
-        }
-
-        function displayAdminUsers(users) {
-            const tbody = document.querySelector('#users-table tbody');
-            tbody.innerHTML = '';
-
-            users.forEach(user => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td><span class="user-badge ${user.role === 'admin' ? 'admin-badge' : 'user-badge-regular'}">${user.role}</span></td>
-                    <td>${user.video_count || 0}</td>
-                    <td>${user.job_count || 0}</td>
-                    <td>${((user.total_size || 0) / (1024 * 1024)).toFixed(2)}</td>
-                    <td>
-                        ${user.role !== 'admin' ? 
-                            `<button class="btn btn-danger btn-small" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>` : 
-                            '<span>Protected</span>'
-                        }
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        async function loadAdminVideos() {
-            try {
-                const response = await fetch(`${API_BASE}/admin/videos`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    displayAdminVideos(data.videos || []);
-                }
-            } catch (error) {
-                console.error('Error loading admin videos:', error);
-            }
-        }
-
-        function displayAdminVideos(videos) {
-            const container = document.getElementById('admin-videos-container');
-            
-            if (videos.length === 0) {
-                container.innerHTML = '<p>No videos in the system.</p>';
-                return;
-            }
-
-            // Create table element safely
-            const table = document.createElement('table');
-            table.className = 'table';
-            
-            // Create header
-            const thead = document.createElement('thead');
-            const headerRow = document.createElement('tr');
-            
-            const headers = ['Video ID', 'Filename', 'Owner', 'Size (MB)', 'Duration', 'Jobs', 'Created', 'Actions'];
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-            table.appendChild(thead);
-            
-            // Create body
-            const tbody = document.createElement('tbody');
-            videos.forEach(video => {
-                const row = document.createElement('tr');
-                
-                // Video ID
-                const idCell = document.createElement('td');
-                idCell.textContent = video.id;
-                row.appendChild(idCell);
-                
-                // Filename
-                const nameCell = document.createElement('td');
-                nameCell.textContent = video.original_filename;
-                row.appendChild(nameCell);
-                
-                // Owner
-                const ownerCell = document.createElement('td');
-                ownerCell.textContent = video.username;
-                row.appendChild(ownerCell);
-                
-                // Size
-                const sizeCell = document.createElement('td');
-                sizeCell.textContent = ((video.file_size || 0) / (1024 * 1024)).toFixed(2);
-                row.appendChild(sizeCell);
-                
-                // Duration
-                const durationCell = document.createElement('td');
-                if (video.duration) {
-                    const minutes = Math.floor(video.duration / 60);
-                    const seconds = String(Math.floor(video.duration % 60)).padStart(2, '0');
-                    durationCell.textContent = `${minutes}:${seconds}`;
+                    displayRecommendations(videoId, data);
+                    showNotification('External recommendations loaded!', 'success');
                 } else {
-                    durationCell.textContent = 'Unknown';
+                    showNotification('Failed to load recommendations', 'error');
+                    recommendationsContainer.classList.add('hidden');
                 }
-                row.appendChild(durationCell);
-                
-                // Jobs
-                const jobsCell = document.createElement('td');
-                jobsCell.textContent = video.job_count || 0;
-                row.appendChild(jobsCell);
-                
-                // Created
-                const createdCell = document.createElement('td');
-                createdCell.textContent = new Date(video.created_at).toLocaleDateString();
-                row.appendChild(createdCell);
-                
-                // Actions
-                const actionsCell = document.createElement('td');
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-danger btn-small';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.onclick = () => deleteVideo(video.id, true);
-                actionsCell.appendChild(deleteBtn);
-                row.appendChild(actionsCell);
-                
-                tbody.appendChild(row);
-            });
-            table.appendChild(tbody);
-            
-            container.innerHTML = '';
-            container.appendChild(table);
+            } catch (error) {
+                console.error('Recommendations error:', error);
+                showNotification('Error loading recommendations', 'error');
+                recommendationsContainer.classList.add('hidden');
+            }
         }
 
-        // Processing functions
+        function displayRecommendations(videoId, data) {
+            const container = document.getElementById('recommendations-' + videoId);
+            
+            let html = '<h4>Related Content from ' + data.source + '</h4>' +
+                '<p><strong>Search Query:</strong> "' + data.search_query + '"</p>' +
+                '<p><strong>Total Results:</strong> ' + (data.total_results || 'Unknown') + '</p>';
+
+            if (data.recommendations && data.recommendations.length > 0) {
+                html += '<div style="margin-top: 15px;">';
+                data.recommendations.forEach(function(rec) {
+                    html += '<div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">' +
+                        '<h5>' + rec.title + '</h5>' +
+                        '<p>' + rec.description + '</p>';
+                    
+                    if (rec.rating) {
+                        html += '<p><strong>Rating:</strong> ' + rec.rating + '/10</p>';
+                    }
+                    html += '</div>';
+                });
+                html += '</div>';
+            } else {
+                html += '<p>No recommendations found for this video.</p>';
+            }
+
+            container.innerHTML = html;
+        }
+
         async function transcodeVideo(videoId) {
             if (!authToken) {
                 showNotification('Please login first', 'error');
@@ -1227,21 +1155,19 @@
             try {
                 showNotification('Starting CPU-intensive transcoding...', 'info');
                 
-                const response = await fetch(`${API_BASE}/videos/${videoId}/transcode`, {
+                const response = await fetch(API_BASE + '/videos/' + videoId + '/transcode', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'Authorization': 'Bearer ' + authToken,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ format, quality })
+                    body: JSON.stringify({ format: format, quality: quality })
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
                     showNotification('Transcoding started! Check Processing Jobs tab.', 'success');
                     switchTab('processing');
                 } else {
-                    const errorText = await response.text();
                     showNotification('Transcoding failed', 'error');
                 }
             } catch (error) {
@@ -1250,112 +1176,35 @@
             }
         }
 
-        async function downloadFile(videoId, jobId) {
-            if (!authToken) {
-                showNotification('Please login first', 'error');
+        async function deleteVideo(videoId, isAdminAction) {
+            if (!confirm('Are you sure you want to delete this video?')) {
                 return;
             }
 
             try {
-                const response = await fetch(`${API_BASE}/videos/${videoId}/download/${jobId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    
-                    // Try to get filename from Content-Disposition header
-                    const contentDisposition = response.headers.get('Content-Disposition');
-                    let filename = 'transcoded_video';
-                    if (contentDisposition) {
-                        const matches = contentDisposition.match(/filename="(.+)"/);
-                        if (matches) {
-                            filename = matches[1];
-                        }
-                    }
-                    
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
-                    showNotification('Download started!', 'success');
-                } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.error || 'Download failed', 'error');
-                }
-            } catch (error) {
-                console.error('Download error:', error);
-                showNotification('Download failed', 'error');
-            }
-        }
-
-        async function deleteUser(userId, username) {
-            if (!confirm(`Are you sure you want to delete user "${username}" and all their data? This cannot be undone.`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${API_BASE}/admin/users/${userId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`
-                    }
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    showNotification(`User ${username} deleted successfully`, 'success');
-                    loadAdminUsers();
-                    loadAnalytics(); // Refresh stats
-                } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.error || 'Delete failed', 'error');
-                }
-            } catch (error) {
-                console.error('Delete user error:', error);
-                showNotification('Delete failed', 'error');
-            }
-        }
-
-        async function deleteVideo(videoId, isAdminAction = false) {
-            if (!confirm('Are you sure you want to delete this video and all associated data? This cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const endpoint = isAdminAction ? `${API_BASE}/admin/videos/${videoId}` : `${API_BASE}/videos/${videoId}`;
+                const endpoint = isAdminAction ? API_BASE + '/admin/videos/' + videoId : API_BASE + '/videos/' + videoId;
                 const response = await fetch(endpoint, {
                     method: 'DELETE',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     }
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
                     showNotification('Video deleted successfully', 'success');
-                    
-                    if (isAdminAction) {
-                        loadAdminVideos();
-                    } else {
-                        loadVideos();
-                    }
-                    loadAnalytics(); // Refresh stats
+                    loadVideosWithFilters();
+                    loadAnalytics();
                 } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.error || 'Delete failed', 'error');
+                    showNotification('Delete failed', 'error');
                 }
             } catch (error) {
                 console.error('Delete video error:', error);
                 showNotification('Delete failed', 'error');
             }
+        }
+
+        async function loadAdminData() {
+            // Simplified admin data loading
         }
 
         async function startLoadTest() {
@@ -1375,10 +1224,10 @@
             try {
                 showNotification('Starting 5-minute dual-core CPU load test...', 'info');
 
-                const response = await fetch(`${API_BASE}/load-test`, {
+                const response = await fetch(API_BASE + '/load-test', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
+                        'Authorization': 'Bearer ' + authToken,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ cores: 2 })
@@ -1386,20 +1235,16 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    showNotification('Load test started! Monitor CPU usage in AWS Console.', 'success');
+                    showNotification('Load test started!', 'success');
                     
-                    document.getElementById('load-test-output').innerHTML = `
-                        <p><strong>Duration:</strong> ${result.duration} seconds</p>
-                        <p><strong>CPU Cores:</strong> ${result.cores}</p>
-                        <p><strong>Started:</strong> ${new Date(result.started_at).toLocaleString()}</p>
-                        <p><strong>Estimated Completion:</strong> ${new Date(result.estimated_completion).toLocaleString()}</p>
-                        <p class="info">Check AWS EC2 Console for CPU utilization metrics during this test.</p>
-                    `;
+                    document.getElementById('load-test-output').innerHTML = 
+                        '<p><strong>Duration:</strong> ' + result.duration + ' seconds</p>' +
+                        '<p><strong>CPU Cores:</strong> ' + result.cores + '</p>' +
+                        '<p><strong>Started:</strong> ' + new Date(result.started_at).toLocaleString() + '</p>';
                     
                     resultsDiv.classList.remove('hidden');
                 } else {
-                    const errorData = await response.json();
-                    showNotification(errorData.error || 'Load test failed', 'error');
+                    showNotification('Load test failed', 'error');
                 }
             } catch (error) {
                 console.error('Load test error:', error);
@@ -1410,63 +1255,41 @@
             }
         }
 
-        function loadMoreVideos() {
-            currentPage++;
-            // Load more videos logic here
-        }
-
-        // UI utility functions
         function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab').forEach(tab => {
+            document.querySelectorAll('.tab').forEach(function(tab) {
                 tab.classList.remove('active');
             });
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelector('[data-tab="' + tabName + '"]').classList.add('active');
 
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
+            document.querySelectorAll('.tab-content').forEach(function(content) {
                 content.classList.remove('active');
             });
-            document.getElementById(`${tabName}-tab`).classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
 
-            // Load data for specific tabs
             switch(tabName) {
                 case 'analytics':
                     loadAnalytics();
                     break;
                 case 'videos':
-                    loadVideos();
-                    break;
-                case 'processing':
-                    loadJobs();
-                    break;
-                case 'admin-users':
-                    if (currentUser.role === 'admin') {
-                        loadAdminUsers();
-                    }
-                    break;
-                case 'admin-videos':
-                    if (currentUser.role === 'admin') {
-                        loadAdminVideos();
-                    }
+                    loadVideosWithFilters();
                     break;
             }
         }
 
-        function showNotification(message, type = 'info') {
+        function showNotification(message, type) {
             const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
+            notification.className = 'notification ' + type;
             notification.textContent = message;
             
             document.body.appendChild(notification);
             
-            setTimeout(() => {
+            setTimeout(function() {
                 notification.classList.add('show');
             }, 100);
 
-            setTimeout(() => {
+            setTimeout(function() {
                 notification.classList.remove('show');
-                setTimeout(() => {
+                setTimeout(function() {
                     if (notification.parentNode) {
                         document.body.removeChild(notification);
                     }
