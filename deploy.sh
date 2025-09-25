@@ -315,10 +315,10 @@ main() {
     deploy_to_ec2
     
     if health_check; then
-        print_success "🎉 Deployment completed successfully!"
-        print_success "🌐 Application URL: http://$PUBLIC_IP:3000"
-        print_success "📊 Health Check: http://$PUBLIC_IP:3000/api/health"
-        print_success "🔧 SSH Access: ssh -i $KEY_FILE ec2-user@$PUBLIC_IP"
+        print_success "ðŸŽ‰ Deployment completed successfully!"
+        print_success "ðŸŒ Application URL: http://$PUBLIC_IP:3000"
+        print_success "ðŸ“Š Health Check: http://$PUBLIC_IP:3000/api/health"
+        print_success "ðŸ”§ SSH Access: ssh -i $KEY_FILE ec2-user@$PUBLIC_IP"
     else
         print_error "Deployment completed but health check failed"
         exit 1
