@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   app:
     build: .
@@ -9,6 +8,18 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key}
       - PORT=3000
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
+      - COGNITO_REGION=${COGNITO_REGION}
+      - RDS_HOSTNAME=${RDS_HOSTNAME}
+      - RDS_PORT=${RDS_PORT}
+      - RDS_USERNAME=${RDS_USERNAME}
+      - RDS_PASSWORD=${RDS_PASSWORD}
+      - RDS_DB_NAME=${RDS_DB_NAME}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     volumes:
       - ./uploads:/app/uploads
       - ./processed:/app/processed
@@ -18,7 +29,6 @@ services:
       - redis
     networks:
       - app-network
-    
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -29,25 +39,20 @@ services:
     networks:
       - app-network
     command: redis-server --appendonly yes
-    
   nginx:
     image: nginx:alpine
     ports:
       - "80:80"
-      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
     restart: unless-stopped
     networks:
       - app-network
-
 volumes:
   redis-data:
     driver: local
-
 networks:
   app-network:
     driver: bridge
