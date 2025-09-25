@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MPEG Video Processing Platform</title>
+    <!-- Include Amazon Cognito Identity SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/amazon-cognito-identity-js/6.3.7/amazon-cognito-identity.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -377,7 +379,6 @@
             color: white;
         }
 
-        /* API Features Demonstration Styles */
         .api-features-demo {
             background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
             color: white;
@@ -479,7 +480,7 @@
             <h1>MPEG Video Processing Platform</h1>
             <p>Advanced cloud-based video transcoding with CPU-intensive processing</p>
             <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
-                <strong>Infrastructure:</strong> Docker Compose â€¢ PostgreSQL â€¢ SQLite â€¢ Redis â€¢ Nginx â€¢ External APIs
+                <strong>Infrastructure:</strong> Docker Compose • PostgreSQL • SQLite • Redis • Nginx • AWS Cognito
             </p>
             <div id="user-info" class="user-info hidden">
                 <div>
@@ -493,19 +494,58 @@
         <!-- Authentication Section -->
         <div id="auth-section" class="auth-section">
             <h2>Login to Your Account</h2>
-            <form id="login-form">
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" required>
-                    <small>Try: admin, user1, or user2</small>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required>
-                    <small>Passwords: admin123, password123, password456</small>
-                </div>
-                <button type="submit" class="btn" id="login-btn">Login</button>
-            </form>
+            <div id="login-form-container">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <button type="submit" class="btn" id="login-btn">Login</button>
+                    <button type="button" class="btn btn-secondary" id="show-register-btn">Create Account</button>
+                </form>
+            </div>
+
+            <div id="register-form-container" class="hidden">
+                <h2>Create New Account</h2>
+                <form id="register-form">
+                    <div class="form-group">
+                        <label for="reg-username">Username</label>
+                        <input type="text" id="reg-username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-email">Email</label>
+                        <input type="email" id="reg-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-password">Password</label>
+                        <input type="password" id="reg-password" required>
+                        <small>Must be at least 8 characters with uppercase, lowercase, number, and symbol</small>
+                    </div>
+                    <button type="submit" class="btn" id="register-btn">Create Account</button>
+                    <button type="button" class="btn btn-secondary" id="show-login-btn">Back to Login</button>
+                </form>
+            </div>
+
+            <div id="confirm-form-container" class="hidden">
+                <h2>Confirm Your Account</h2>
+                <p>Please check your email for a confirmation code.</p>
+                <form id="confirm-form">
+                    <div class="form-group">
+                        <label for="confirm-username">Username</label>
+                        <input type="text" id="confirm-username" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmation-code">Confirmation Code</label>
+                        <input type="text" id="confirmation-code" required>
+                    </div>
+                    <button type="submit" class="btn" id="confirm-btn">Confirm Account</button>
+                    <button type="button" class="btn btn-secondary" id="resend-code-btn">Resend Code</button>
+                </form>
+            </div>
         </div>
 
         <!-- Main Application -->
@@ -543,7 +583,7 @@
                     </div>
                     
                     <div id="admin-stats" class="admin-only hidden">
-                        <h3>System Analytics (PostgreSQL + SQLite + Redis)</h3>
+                        <h3>System Analytics (AWS RDS + S3 + Cognito)</h3>
                         <div class="grid">
                             <div class="card stats-card">
                                 <div class="stat-number" id="admin-stat-users">0</div>
@@ -568,7 +608,7 @@
                 <!-- Upload Tab -->
                 <div id="upload-tab" class="tab-content">
                     <div class="upload-area" id="upload-area">
-                        <div class="upload-icon">ðŸ“</div>
+                        <div class="upload-icon">📁</div>
                         <h3>Drag & Drop Video Files Here</h3>
                         <p>Or click to browse files</p>
                         <input type="file" id="file-input" accept="video/*" multiple style="display: none;">
@@ -636,9 +676,9 @@
                         </div>
                         
                         <div class="pagination-controls">
-                            <button id="prev-page" class="btn btn-secondary">â† Previous</button>
+                            <button id="prev-page" class="btn btn-secondary">← Previous</button>
                             <button id="apply-filters" class="btn">Apply Filters</button>
-                            <button id="next-page" class="btn btn-secondary">Next â†’</button>
+                            <button id="next-page" class="btn btn-secondary">Next →</button>
                         </div>
                     </div>
 
@@ -714,6 +754,7 @@
         // Global variables
         let currentUser = null;
         let authToken = null;
+        let currentSession = null;
         let currentFilters = {
             page: 1,
             limit: 10,
@@ -723,22 +764,55 @@
             status: ''
         };
 
-        const API_BASE = '/api';
+        const API_BASE = '/api/v1';
+
+        // Cognito configuration
+        const poolData = {
+            UserPoolId: 'ap-southeast-2_hqzxMJpG0',
+            ClientId: '55p9dqrdmv3et2f64tsbtibmen'
+        };
+
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                authToken = token;
-                validateToken();
+            // Check for existing session
+            const idToken = localStorage.getItem('idToken');
+            if (idToken) {
+                try {
+                    const payload = JSON.parse(atob(idToken.split('.')[1]));
+                    if (payload.exp > Date.now() / 1000) {
+                        authToken = idToken;
+                        currentUser = {
+                            username: payload['cognito:username'] || payload.preferred_username,
+                            email: payload.email,
+                            sub: payload.sub,
+                            role: payload['custom:role'] || 'user'
+                        };
+                        showMainContent();
+                        loadInitialData();
+                    } else {
+                        localStorage.removeItem('idToken');
+                        localStorage.removeItem('accessToken');
+                    }
+                } catch (e) {
+                    localStorage.removeItem('idToken');
+                    localStorage.removeItem('accessToken');
+                }
             }
         });
 
         function initializeEventListeners() {
             document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('register-form').addEventListener('submit', handleRegister);
+            document.getElementById('confirm-form').addEventListener('submit', handleConfirm);
             document.getElementById('logout-btn').addEventListener('click', handleLogout);
+
+            document.getElementById('show-register-btn').addEventListener('click', showRegisterForm);
+            document.getElementById('show-login-btn').addEventListener('click', showLoginForm);
+            document.getElementById('resend-code-btn').addEventListener('click', resendConfirmationCode);
 
             const uploadArea = document.getElementById('upload-area');
             const fileInput = document.getElementById('file-input');
@@ -761,6 +835,319 @@
             document.getElementById('prev-page').addEventListener('click', function() { changePage(-1); });
             document.getElementById('next-page').addEventListener('click', function() { changePage(1); });
             document.getElementById('start-load-test').addEventListener('click', startLoadTest);
+        }
+
+        function showRegisterForm() {
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('register-form-container').classList.remove('hidden');
+            document.getElementById('confirm-form-container').classList.add('hidden');
+        }
+
+        function showLoginForm() {
+            document.getElementById('login-form-container').classList.remove('hidden');
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('confirm-form-container').classList.add('hidden');
+        }
+
+        function showConfirmForm(username) {
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('register-form-container').classList.add('hidden');
+            document.getElementById('confirm-form-container').classList.remove('hidden');
+            document.getElementById('confirm-username').value = username;
+        }
+
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const registerBtn = document.getElementById('register-btn');
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            if (!username || !email || !password) {
+                showNotification('Please fill in all fields', 'error');
+                return;
+            }
+
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating Account...';
+
+            try {
+                const attributeList = [
+                    new AmazonCognitoIdentity.CognitoUserAttribute({
+                        Name: 'email',
+                        Value: email
+                    })
+                ];
+
+                userPool.signUp(username, password, attributeList, null, function(err, result) {
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'Create Account';
+
+                    if (err) {
+                        console.error('Registration error:', err);
+                        let errorMessage = 'Registration failed';
+                        if (err.code === 'UsernameExistsException') {
+                            errorMessage = 'Username already exists';
+                        } else if (err.code === 'InvalidPasswordException') {
+                            errorMessage = 'Password does not meet requirements';
+                        } else if (err.code === 'InvalidParameterException') {
+                            errorMessage = 'Invalid email or username format';
+                        }
+                        showNotification(errorMessage, 'error');
+                        return;
+                    }
+
+                    showNotification('Account created! Please check your email for confirmation code.', 'success');
+                    showConfirmForm(username);
+                });
+
+            } catch (error) {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create Account';
+                console.error('Registration error:', error);
+                showNotification('Registration failed', 'error');
+            }
+        }
+
+        async function handleConfirm(e) {
+            e.preventDefault();
+            
+            const confirmBtn = document.getElementById('confirm-btn');
+            const username = document.getElementById('confirm-username').value;
+            const confirmationCode = document.getElementById('confirmation-code').value;
+
+            if (!username || !confirmationCode) {
+                showNotification('Please enter the confirmation code', 'error');
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Confirming...';
+
+            try {
+                const userData = {
+                    Username: username,
+                    Pool: userPool
+                };
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+                cognitoUser.confirmRegistration(confirmationCode, true, function(err, result) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirm Account';
+
+                    if (err) {
+                        console.error('Confirmation error:', err);
+                        let errorMessage = 'Confirmation failed';
+                        if (err.code === 'CodeMismatchException') {
+                            errorMessage = 'Invalid confirmation code';
+                        } else if (err.code === 'ExpiredCodeException') {
+                            errorMessage = 'Confirmation code expired';
+                        }
+                        showNotification(errorMessage, 'error');
+                        return;
+                    }
+
+                    showNotification('Account confirmed! You can now login.', 'success');
+                    showLoginForm();
+                    document.getElementById('username').value = username;
+                });
+
+            } catch (error) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm Account';
+                console.error('Confirmation error:', error);
+                showNotification('Confirmation failed', 'error');
+            }
+        }
+
+        function resendConfirmationCode() {
+            const username = document.getElementById('confirm-username').value;
+            if (!username) return;
+
+            const userData = {
+                Username: username,
+                Pool: userPool
+            };
+
+            const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+            cognitoUser.resendConfirmationCode(function(err, result) {
+                if (err) {
+                    console.error('Resend error:', err);
+                    showNotification('Failed to resend code', 'error');
+                    return;
+                }
+                showNotification('Confirmation code sent!', 'success');
+            });
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('login-btn');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showNotification('Please enter username and password', 'error');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            try {
+                const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                    Username: username,
+                    Password: password
+                });
+
+                const userData = {
+                    Username: username,
+                    Pool: userPool
+                };
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+                cognitoUser.authenticateUser(authenticationDetails, {
+                    onSuccess: function(session) {
+                        console.log('Authentication successful');
+                        currentSession = session;
+                        
+                        const idToken = session.getIdToken().getJwtToken();
+                        const accessToken = session.getAccessToken().getJwtToken();
+                        
+                        // Store tokens
+                        localStorage.setItem('idToken', idToken);
+                        localStorage.setItem('accessToken', accessToken);
+                        authToken = idToken;
+                        
+                        // Decode user info from ID token
+                        const payload = JSON.parse(atob(idToken.split('.')[1]));
+                        
+                        currentUser = {
+                            username: payload['cognito:username'] || payload.preferred_username,
+                            email: payload.email,
+                            sub: payload.sub,
+                            role: payload['custom:role'] || 'user'
+                        };
+                        
+                        showNotification('Login successful!', 'success');
+                        showMainContent();
+                        loadInitialData();
+                    },
+
+                    onFailure: function(err) {
+                        console.error('Authentication failed:', err);
+                        let errorMessage = 'Login failed';
+                        
+                        if (err.code === 'UserNotConfirmedException') {
+                            errorMessage = 'Please confirm your email address first';
+                            showConfirmForm(username);
+                        } else if (err.code === 'NotAuthorizedException') {
+                            errorMessage = 'Invalid username or password';
+                        } else if (err.code === 'UserNotFoundException') {
+                            errorMessage = 'User not found';
+                        }
+                        
+                        showNotification(errorMessage, 'error');
+                    },
+
+                    newPasswordRequired: function(userAttributes, requiredAttributes) {
+                        console.log('New password required');
+                        const newPassword = prompt('Please set a new password (must meet requirements):');
+                        
+                        if (!newPassword) {
+                            showNotification('Password change cancelled', 'error');
+                            return;
+                        }
+
+                        cognitoUser.completeNewPasswordChallenge(newPassword, {}, {
+                            onSuccess: function(session) {
+                                console.log('Password updated and authenticated');
+                                currentSession = session;
+                                
+                                const idToken = session.getIdToken().getJwtToken();
+                                localStorage.setItem('idToken', idToken);
+                                localStorage.setItem('accessToken', session.getAccessToken().getJwtToken());
+                                authToken = idToken;
+                                
+                                const payload = JSON.parse(atob(idToken.split('.')[1]));
+                                currentUser = {
+                                    username: payload['cognito:username'] || payload.preferred_username,
+                                    email: payload.email,
+                                    sub: payload.sub,
+                                    role: payload['custom:role'] || 'user'
+                                };
+                                
+                                showNotification('Login successful! Password updated.', 'success');
+                                showMainContent();
+                                loadInitialData();
+                            },
+                            onFailure: function(err) {
+                                console.error('Password update failed:', err);
+                                showNotification('Failed to update password', 'error');
+                            }
+                        });
+                    }
+                });
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Login failed', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login';
+            }
+        }
+
+        function handleLogout() {
+            if (currentSession) {
+                const cognitoUser = currentSession.getIdToken().payload['cognito:username'];
+                const userData = {
+                    Username: cognitoUser,
+                    Pool: userPool
+                };
+                
+                const user = new AmazonCognitoIdentity.CognitoUser(userData);
+                user.signOut();
+            }
+
+            authToken = null;
+            currentUser = null;
+            currentSession = null;
+            localStorage.removeItem('idToken');
+            localStorage.removeItem('accessToken');
+            
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('main-content').style.display = 'none';
+            document.getElementById('user-info').classList.add('hidden');
+            
+            document.querySelectorAll('.admin-only').forEach(function(el) {
+                el.classList.add('hidden');
+            });
+            
+            showLoginForm();
+            showNotification('Logged out successfully', 'info');
+        }
+
+        function showMainContent() {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('main-content').style.display = 'block';
+            document.getElementById('user-info').classList.remove('hidden');
+            
+            document.getElementById('username-display').textContent = currentUser.username;
+            const roleBadge = document.getElementById('role-badge');
+            roleBadge.textContent = currentUser.role.toUpperCase();
+            roleBadge.className = 'user-badge ' + (currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular');
+            
+            if (currentUser.role === 'admin') {
+                document.querySelectorAll('.admin-only').forEach(function(el) {
+                    el.classList.remove('hidden');
+                });
+            }
         }
 
         function updateFilters() {
@@ -798,116 +1185,8 @@
                 }
             });
             
-            const url = '/api/videos?' + params.toString();
+            const url = '/api/v1/videos?' + params.toString();
             document.getElementById('current-api-url').textContent = url;
-        }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            
-            const loginBtn = document.getElementById('login-btn');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (!username || !password) {
-                showNotification('Please enter username and password', 'error');
-                return;
-            }
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Logging in...';
-
-            try {
-                const response = await fetch(API_BASE + '/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username: username, password: password })
-                });
-
-                if (!response.ok) {
-                    throw new Error('Login failed: ' + response.status);
-                }
-
-                const data = await response.json();
-
-                if (data.token && data.user) {
-                    authToken = data.token;
-                    currentUser = data.user;
-                    localStorage.setItem('authToken', authToken);
-                    
-                    showNotification('Login successful!', 'success');
-                    showMainContent();
-                    loadInitialData();
-                }
-            } catch (error) {
-                console.error('Login error:', error);
-                showNotification('Login failed', 'error');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Login';
-            }
-        }
-
-        function handleLogout() {
-            authToken = null;
-            currentUser = null;
-            localStorage.removeItem('authToken');
-            
-            document.getElementById('auth-section').style.display = 'block';
-            document.getElementById('main-content').style.display = 'none';
-            document.getElementById('user-info').classList.add('hidden');
-            
-            document.querySelectorAll('.admin-only').forEach(function(el) {
-                el.classList.add('hidden');
-            });
-            
-            showNotification('Logged out successfully', 'info');
-        }
-
-        async function validateToken() {
-            if (!authToken) return false;
-
-            try {
-                const response = await fetch(API_BASE + '/auth/me', {
-                    headers: {
-                        'Authorization': 'Bearer ' + authToken
-                    }
-                });
-
-                if (response.ok) {
-                    const user = await response.json();
-                    currentUser = user;
-                    showMainContent();
-                    loadInitialData();
-                    return true;
-                } else {
-                    handleLogout();
-                    return false;
-                }
-            } catch (error) {
-                console.error('Token validation failed:', error);
-                handleLogout();
-                return false;
-            }
-        }
-
-        function showMainContent() {
-            document.getElementById('auth-section').style.display = 'none';
-            document.getElementById('main-content').style.display = 'block';
-            document.getElementById('user-info').classList.remove('hidden');
-            
-            document.getElementById('username-display').textContent = currentUser.username;
-            const roleBadge = document.getElementById('role-badge');
-            roleBadge.textContent = currentUser.role.toUpperCase();
-            roleBadge.className = 'user-badge ' + (currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular');
-            
-            if (currentUser.role === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(function(el) {
-                    el.classList.remove('hidden');
-                });
-            }
         }
 
         async function uploadFiles(files) {
@@ -958,11 +1237,15 @@
             }
         }
 
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        }
+
         async function loadInitialData() {
             loadAnalytics();
-            if (currentUser.role === 'admin') {
-                loadAdminData();
-            }
             updateApiUrlDisplay();
         }
 
@@ -1020,7 +1303,7 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    displayVideos(data.videos || []);
+                    displayVideos(data.data || []);
                     updatePaginationDisplay(data.pagination);
                 }
             } catch (error) {
@@ -1031,10 +1314,10 @@
         function updatePaginationDisplay(pagination) {
             if (pagination) {
                 document.getElementById('pagination-display').textContent = 
-                    'Page ' + pagination.page + ' of ' + pagination.pages + ' (' + pagination.total + ' total videos)';
+                    'Page ' + pagination.current_page + ' of ' + pagination.total_pages + ' (' + pagination.total_items + ' total videos)';
                 
-                document.getElementById('prev-page').disabled = pagination.page <= 1;
-                document.getElementById('next-page').disabled = pagination.page >= pagination.pages;
+                document.getElementById('prev-page').disabled = !pagination.has_previous_page;
+                document.getElementById('next-page').disabled = !pagination.has_next_page;
             }
         }
 
@@ -1074,73 +1357,10 @@
                 '</div>' +
                 '<div style="margin-top: 15px;">' +
                     '<button class="btn btn-small" onclick="transcodeVideo(' + video.id + ')">Transcode (CPU Test)</button>' +
-                    '<button class="btn btn-secondary btn-small" onclick="getRecommendations(' + video.id + ')">Get Recommendations</button>' +
                     (currentUser.role === 'admin' ? '<button class="btn btn-danger btn-small" onclick="deleteVideo(' + video.id + ')">Delete</button>' : '') +
-                '</div>' +
-                '<div id="recommendations-' + video.id + '" class="hidden">' +
-                    '<!-- Recommendations will be loaded here -->' +
                 '</div>';
 
             return card;
-        }
-
-        async function getRecommendations(videoId) {
-            if (!authToken) {
-                showNotification('Please login first', 'error');
-                return;
-            }
-
-            const recommendationsContainer = document.getElementById('recommendations-' + videoId);
-            recommendationsContainer.innerHTML = '<h4>Fetching Related Content from External API...</h4><div class="loading"></div>';
-            recommendationsContainer.classList.remove('hidden');
-
-            try {
-                const response = await fetch(API_BASE + '/videos/' + videoId + '/recommendations', {
-                    headers: {
-                        'Authorization': 'Bearer ' + authToken
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    displayRecommendations(videoId, data);
-                    showNotification('External recommendations loaded!', 'success');
-                } else {
-                    showNotification('Failed to load recommendations', 'error');
-                    recommendationsContainer.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('Recommendations error:', error);
-                showNotification('Error loading recommendations', 'error');
-                recommendationsContainer.classList.add('hidden');
-            }
-        }
-
-        function displayRecommendations(videoId, data) {
-            const container = document.getElementById('recommendations-' + videoId);
-            
-            let html = '<h4>Related Content from ' + data.source + '</h4>' +
-                '<p><strong>Search Query:</strong> "' + data.search_query + '"</p>' +
-                '<p><strong>Total Results:</strong> ' + (data.total_results || 'Unknown') + '</p>';
-
-            if (data.recommendations && data.recommendations.length > 0) {
-                html += '<div style="margin-top: 15px;">';
-                data.recommendations.forEach(function(rec) {
-                    html += '<div style="border: 1px solid #ccc; padding: 10px; margin: 10px 0; border-radius: 5px;">' +
-                        '<h5>' + rec.title + '</h5>' +
-                        '<p>' + rec.description + '</p>';
-                    
-                    if (rec.rating) {
-                        html += '<p><strong>Rating:</strong> ' + rec.rating + '/10</p>';
-                    }
-                    html += '</div>';
-                });
-                html += '</div>';
-            } else {
-                html += '<p>No recommendations found for this video.</p>';
-            }
-
-            container.innerHTML = html;
         }
 
         async function transcodeVideo(videoId) {
@@ -1176,14 +1396,13 @@
             }
         }
 
-        async function deleteVideo(videoId, isAdminAction) {
+        async function deleteVideo(videoId) {
             if (!confirm('Are you sure you want to delete this video?')) {
                 return;
             }
 
             try {
-                const endpoint = isAdminAction ? API_BASE + '/admin/videos/' + videoId : API_BASE + '/videos/' + videoId;
-                const response = await fetch(endpoint, {
+                const response = await fetch(API_BASE + '/videos/' + videoId, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': 'Bearer ' + authToken
@@ -1201,10 +1420,6 @@
                 console.error('Delete video error:', error);
                 showNotification('Delete failed', 'error');
             }
-        }
-
-        async function loadAdminData() {
-            // Simplified admin data loading
         }
 
         async function startLoadTest() {
