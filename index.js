@@ -436,6 +436,9 @@ app.post(`${API_BASE}/auth/confirm`, authLimiter, async (req, res) => {
   }
 });
 
+// Replace your existing login endpoint in index.js with this updated version
+// This handles the NewPasswordRequired challenge for temporary passwords
+
 app.post(`${API_BASE}/auth/login`, authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -458,6 +461,7 @@ app.post(`${API_BASE}/auth/login`, authLimiter, async (req, res) => {
 
     const authResult = await cognito.initiateAuth(params).promise();
 
+    // Handle successful authentication
     if (authResult.AuthenticationResult) {
       const accessToken = authResult.AuthenticationResult.AccessToken;
       const idToken = authResult.AuthenticationResult.IdToken;
@@ -468,7 +472,7 @@ app.post(`${API_BASE}/auth/login`, authLimiter, async (req, res) => {
       // Create or update user in our database
       const user = await createUserFromCognito(userInfo);
 
-      res.json({
+      return res.json({
         message: 'Login successful',
         accessToken: accessToken,
         idToken: idToken,
@@ -481,30 +485,96 @@ app.post(`${API_BASE}/auth/login`, authLimiter, async (req, res) => {
           emailVerified: user.email_verified
         }
       });
-    } else {
-      throw new Error('Authentication failed');
     }
+
+    // Handle NewPasswordRequired challenge (temporary password)
+    if (authResult.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+      console.log('Handling NEW_PASSWORD_REQUIRED challenge for user:', username);
+      
+      // Automatically set the same password as permanent
+      const challengeParams = {
+        ChallengeName: 'NEW_PASSWORD_REQUIRED',
+        ClientId: COGNITO_CLIENT_ID,
+        ChallengeResponses: {
+          USERNAME: username,
+          NEW_PASSWORD: password, // Use the same password they provided
+          'userAttributes.email': 'admin@example.com' // Required attribute
+        },
+        Session: authResult.Session
+      };
+
+      const challengeResult = await cognito.respondToAuthChallenge(challengeParams).promise();
+
+      if (challengeResult.AuthenticationResult) {
+        const accessToken = challengeResult.AuthenticationResult.AccessToken;
+        const idToken = challengeResult.AuthenticationResult.IdToken;
+        
+        // Decode the ID token to get user info
+        const userInfo = jwt.decode(idToken);
+        
+        // Create or update user in our database
+        const user = await createUserFromCognito(userInfo);
+
+        return res.json({
+          message: 'Login successful (password confirmed)',
+          accessToken: accessToken,
+          idToken: idToken,
+          expires_in: challengeResult.AuthenticationResult.ExpiresIn,
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            emailVerified: user.email_verified
+          }
+        });
+      }
+    }
+
+    // Handle other challenges if needed
+    if (authResult.ChallengeName) {
+      return res.status(400).json({
+        error: 'Authentication challenge not supported',
+        code: 'UNSUPPORTED_CHALLENGE',
+        challenge: authResult.ChallengeName,
+        details: 'This authentication flow requires additional steps'
+      });
+    }
+
+    // If we get here, authentication failed
+    throw new Error('Authentication failed - no result or challenge');
 
   } catch (error) {
     console.error('Login error:', error);
+    
+    // Handle specific Cognito errors
+    if (error.code === 'NotAuthorizedException') {
+      return res.status(401).json({
+        error: 'Invalid username or password',
+        code: 'INVALID_CREDENTIALS'
+      });
+    }
+    
+    if (error.code === 'UserNotConfirmedException') {
+      return res.status(401).json({
+        error: 'User account not confirmed',
+        code: 'USER_NOT_CONFIRMED'
+      });
+    }
+
+    if (error.code === 'UserNotFoundException') {
+      return res.status(401).json({
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
     res.status(401).json({
       error: 'Login failed',
       code: 'AUTHENTICATION_FAILED',
       details: error.message
     });
   }
-});
-
-app.get(`${API_BASE}/auth/me`, authenticateToken, (req, res) => {
-  res.json({
-    id: req.user.id,
-    username: req.user.username,
-    email: req.user.email,
-    role: req.user.role,
-    emailVerified: req.user.email_verified,
-    lastLogin: req.user.last_login,
-    loginCount: req.user.login_count
-  });
 });
 
 // ===========================================
