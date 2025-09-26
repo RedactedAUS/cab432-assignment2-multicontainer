@@ -30,7 +30,7 @@ const pool = new Pool({
   user: process.env.RDS_USERNAME || 'postgres',
   password: process.env.RDS_PASSWORD || 'password',
   database: process.env.RDS_DB_NAME || 'mpegapi',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  ssl: false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
