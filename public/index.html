@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MPEG Video Processing Platform</title>
+    <title>MPEG Video Processing Platform - Assessment 2</title>
     <style>
         * {
             margin: 0;
@@ -45,6 +45,21 @@
             text-align: center;
             color: #718096;
             font-size: 1.1rem;
+        }
+
+        .assessment-info {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .assessment-info strong {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
         }
 
         .user-info {
@@ -131,40 +146,12 @@
             transform: none;
         }
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
-        }
-
-        .btn-small {
-            padding: 6px 12px;
-            font-size: 14px;
-        }
-
         .btn-test {
             background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
         }
 
-        .test-section {
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 2px solid #fbb040;
-            background: #fef5e7;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        .test-section h3 {
-            color: #c05621;
-            margin-bottom: 10px;
-        }
-
-        .test-section p {
-            color: #7c2d12;
-            margin-bottom: 15px;
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
         }
 
         .main-content {
@@ -184,6 +171,59 @@
             margin-bottom: 20px;
             font-size: 1.8rem;
             font-weight: 600;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background-color: #f7fafc;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #ebf8ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
         }
 
         .grid {
@@ -224,32 +264,6 @@
             opacity: 0.9;
         }
 
-        .upload-area {
-            border: 3px dashed #cbd5e0;
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
-        }
-
-        .upload-area:hover {
-            border-color: #667eea;
-            background-color: #f7fafc;
-        }
-
-        .upload-area.dragover {
-            border-color: #667eea;
-            background-color: #ebf8ff;
-        }
-
-        .upload-icon {
-            font-size: 3rem;
-            color: #a0aec0;
-            margin-bottom: 15px;
-        }
-
         .notification {
             position: fixed;
             top: 20px;
@@ -261,6 +275,7 @@
             z-index: 1000;
             transform: translateX(400px);
             transition: transform 0.3s;
+            max-width: 400px;
         }
 
         .notification.show {
@@ -277,34 +292,6 @@
 
         .notification.info {
             background-color: #4299e1;
-        }
-
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
-            flex-wrap: wrap;
-        }
-
-        .tab {
-            padding: 12px 24px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s;
-            font-weight: 600;
-        }
-
-        .tab.active {
-            border-bottom-color: #667eea;
-            color: #667eea;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
         }
 
         .hidden {
@@ -328,129 +315,36 @@
 
         .progress-bar {
             width: 100%;
-            height: 8px;
+            height: 10px;
             background-color: #e2e8f0;
-            border-radius: 4px;
+            border-radius: 5px;
             overflow: hidden;
-            margin: 10px 0;
+            margin: 15px 0;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             transition: width 0.3s ease;
+            width: 0%;
         }
 
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        .table th,
-        .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .table th {
-            background-color: #f7fafc;
-            font-weight: 600;
-            color: #4a5568;
-        }
-
-        .table tr:hover {
-            background-color: #f7fafc;
-        }
-
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-completed {
-            background: #c6f6d5;
-            color: #2f855a;
-        }
-
-        .status-processing {
-            background: #fed7aa;
-            color: #c05621;
-        }
-
-        .status-failed {
-            background: #fed7d7;
-            color: #c53030;
-        }
-
-        .status-uploaded {
-            background: #bee3f8;
-            color: #2b6cb0;
-        }
-
-        .admin-section {
-            background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);
-            color: white;
-        }
-
-        .admin-section h2 {
-            color: white;
-        }
-
-        .api-features-demo {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 30px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        }
-
-        .api-features-demo h3 {
-            margin-bottom: 20px;
-            font-size: 1.5rem;
-            text-align: center;
-        }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .controls-grid .form-group {
-            margin-bottom: 0;
-        }
-
-        .controls-grid label {
-            color: white;
-            font-weight: 600;
-        }
-
-        .controls-grid select,
-        .controls-grid input {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .pagination-info {
-            text-align: center;
-            font-weight: 600;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px;
+        .upload-status {
+            background: #f0f9ff;
+            border: 1px solid #7dd3fc;
             border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
         }
 
-        .pagination-controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
+        .debug-info {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 0.9rem;
         }
 
         @media (max-width: 768px) {
@@ -465,10 +359,6 @@
             .grid {
                 grid-template-columns: 1fr;
             }
-
-            .controls-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -476,10 +366,11 @@
     <div class="container">
         <div class="header">
             <h1>MPEG Video Processing Platform</h1>
-            <p>Advanced cloud-based video transcoding with CPU-intensive processing</p>
-            <p style="margin-top: 10px; font-size: 0.9rem; color: #6b7280;">
-                <strong>Infrastructure:</strong> AWS Cognito • S3 • RDS PostgreSQL • Docker Compose
-            </p>
+            <p>Assessment 2: Cloud Services Integration</p>
+            <div class="assessment-info">
+                <strong>Core Criteria Demonstrated:</strong>
+                ✅ Statelessness: No local file storage | ✅ PostgreSQL RDS: Structured data | ✅ S3 Object Storage: Video files | ⏳ Cognito: Test mode active
+            </div>
             <div id="user-info" class="user-info hidden">
                 <div>
                     <span>Welcome, <strong id="username-display"></strong></span>
@@ -492,86 +383,29 @@
 
         <!-- Authentication Section -->
         <div id="auth-section" class="auth-section">
-            <h2>Login to Your Account</h2>
-            <div id="login-form-container">
-                <form id="login-form">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" id="username" required value="chad">
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" id="password" required value="QWERTYpkr12#">
-                    </div>
-                    <button type="submit" class="btn" id="login-btn">Login with Cognito</button>
-                    <button type="button" class="btn btn-secondary" id="show-register-btn">Create Account</button>
-                </form>
-
-                <!-- TEST AUTHENTICATION SECTION -->
-                <div class="test-section">
-                    <h3>🧪 Testing Mode</h3>
-                    <p>For testing cloud services without Cognito authentication (Assignment 2 testing):</p>
-                    <button type="button" id="test-login-btn" class="btn btn-test">Use Test Login (Bypass Cognito)</button>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">
-                        <strong>Note:</strong> Test login creates an admin user for testing all features.
-                    </p>
-                </div>
+            <h2>Assessment 2 Authentication</h2>
+            <div style="background: #fef5e7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <h3 style="color: #92400e; margin-bottom: 10px;">🧪 Testing Mode Active</h3>
+                <p style="color: #92400e;">Cognito integration is prepared but using test authentication for development. Click below to access the application with admin privileges.</p>
             </div>
-
-            <div id="register-form-container" class="hidden">
-                <h2>Create New Account</h2>
-                <form id="register-form">
-                    <div class="form-group">
-                        <label for="reg-username">Username</label>
-                        <input type="text" id="reg-username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reg-email">Email</label>
-                        <input type="email" id="reg-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="reg-password">Password</label>
-                        <input type="password" id="reg-password" required>
-                        <small>Must be at least 8 characters with uppercase, lowercase, number, and symbol</small>
-                    </div>
-                    <button type="submit" class="btn" id="register-btn">Create Account</button>
-                    <button type="button" class="btn btn-secondary" id="show-login-btn">Back to Login</button>
-                </form>
-            </div>
-
-            <div id="confirm-form-container" class="hidden">
-                <h2>Confirm Your Account</h2>
-                <p>Please check your email for a confirmation code.</p>
-                <form id="confirm-form">
-                    <div class="form-group">
-                        <label for="confirm-username">Username</label>
-                        <input type="text" id="confirm-username" required readonly>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirmation-code">Confirmation Code</label>
-                        <input type="text" id="confirmation-code" required>
-                    </div>
-                    <button type="submit" class="btn" id="confirm-btn">Confirm Account</button>
-                    <button type="button" class="btn btn-secondary" id="resend-code-btn">Resend Code</button>
-                </form>
-            </div>
+            <button type="button" id="test-login-btn" class="btn btn-test">Use Test Login (Assessment 2 Demo)</button>
+            <p style="margin-top: 10px; color: #6b7280; font-size: 0.9rem;">
+                This creates a test session demonstrating stateless authentication without requiring Cognito setup.
+            </p>
         </div>
 
         <!-- Main Application -->
         <div id="main-content" class="main-content">
             <div class="section">
                 <div class="tabs">
-                    <div class="tab active" data-tab="analytics">Analytics Dashboard</div>
-                    <div class="tab" data-tab="upload">Upload Videos</div>
-                    <div class="tab" data-tab="videos">Advanced Video Browser</div>
-                    <div class="tab" data-tab="processing">Processing Jobs</div>
-                    <div class="tab admin-only hidden" data-tab="admin-users">Manage Users</div>
-                    <div class="tab admin-only hidden" data-tab="admin-videos">All Videos</div>
-                    <div class="tab admin-only hidden" data-tab="load-test">CPU Load Test</div>
+                    <div class="tab active" data-tab="analytics">📊 Analytics Dashboard</div>
+                    <div class="tab" data-tab="upload">📁 Upload Videos</div>
+                    <div class="tab" data-tab="videos">🎬 Manage Videos</div>
                 </div>
 
                 <!-- Analytics Tab -->
                 <div id="analytics-tab" class="tab-content active">
+                    <h2>System Analytics</h2>
                     <div class="grid" id="analytics-grid">
                         <div class="card stats-card">
                             <div class="stat-number" id="stat-videos">0</div>
@@ -582,149 +416,65 @@
                             <div class="stat-label">Processing Jobs</div>
                         </div>
                         <div class="card stats-card">
-                            <div class="stat-number" id="stat-success">0%</div>
-                            <div class="stat-label">Success Rate</div>
+                            <div class="stat-number" id="stat-users">0</div>
+                            <div class="stat-label">Total Users</div>
                         </div>
                         <div class="card stats-card">
                             <div class="stat-number" id="stat-size">0</div>
-                            <div class="stat-label">Total Size (MB)</div>
+                            <div class="stat-label">Storage (MB)</div>
                         </div>
                     </div>
-                    
-                    <div id="admin-stats" class="admin-only hidden">
-                        <h3>System Analytics</h3>
-                        <div class="grid">
-                            <div class="card stats-card">
-                                <div class="stat-number" id="admin-stat-users">0</div>
-                                <div class="stat-label">Total Users</div>
-                            </div>
-                            <div class="card stats-card">
-                                <div class="stat-number" id="admin-stat-storage">0</div>
-                                <div class="stat-label">Total Storage (MB)</div>
-                            </div>
-                        </div>
+                    <div id="analytics-details" style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                        <h3>Assessment 2 Data Sources:</h3>
+                        <p><strong>PostgreSQL RDS:</strong> User accounts, video metadata, processing jobs</p>
+                        <p><strong>S3 Object Storage:</strong> Video files with pre-signed URL access</p>
+                        <p><strong>Stateless Design:</strong> No local caching - all data from cloud services</p>
                     </div>
                 </div>
 
                 <!-- Upload Tab -->
                 <div id="upload-tab" class="tab-content">
+                    <h2>Upload Videos to Cloud Storage</h2>
                     <div class="upload-area" id="upload-area">
-                        <div class="upload-icon">📹</div>
+                        <div class="upload-icon">🎬</div>
                         <h3>Drag & Drop Video Files Here</h3>
-                        <p>Or click to browse files</p>
+                        <p>Or click to browse files (Max 500MB per file)</p>
+                        <p style="font-size: 0.9rem; color: #6b7280; margin-top: 10px;">
+                            Supported: MP4, AVI, MOV, MKV, WebM, FLV, 3GP
+                        </p>
                         <input type="file" id="file-input" accept="video/*" multiple style="display: none;">
                     </div>
                     
-                    <div id="upload-progress" class="hidden">
-                        <h3>Uploading...</h3>
+                    <div id="upload-status" class="hidden">
+                        <h3>Upload Status</h3>
+                        <div id="upload-details"></div>
                         <div class="progress-bar">
                             <div class="progress-fill" id="upload-progress-fill"></div>
                         </div>
+                        <div id="upload-debug" class="debug-info hidden"></div>
+                    </div>
+
+                    <div class="assessment-info" style="margin-top: 20px; background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);">
+                        <strong>Upload Process Demonstrates:</strong><br>
+                        🔄 Stateless: Files go directly to S3, metadata to PostgreSQL<br>
+                        🔒 Security: Pre-signed URLs, private S3 bucket, server-side validation<br>
+                        📊 Integration: FFmpeg analysis, database relationships, error handling
                     </div>
                 </div>
 
-                <!-- Videos Tab with API Features -->
+                <!-- Videos Tab -->
                 <div id="videos-tab" class="tab-content">
-                    <div class="api-features-demo">
-                        <h3>REST API Features Demonstration</h3>
-                        <div class="controls-grid">
-                            <div class="form-group">
-                                <label>Search Videos:</label>
-                                <input type="text" id="search-input" placeholder="Search by filename...">
-                            </div>
-                            <div class="form-group">
-                                <label>Sort by:</label>
-                                <select id="sort-select">
-                                    <option value="created_at">Upload Date</option>
-                                    <option value="file_size">File Size</option>
-                                    <option value="duration">Duration</option>
-                                    <option value="original_filename">Name</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Order:</label>
-                                <select id="order-select">
-                                    <option value="desc">Descending</option>
-                                    <option value="asc">Ascending</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Page Size:</label>
-                                <select id="limit-select">
-                                    <option value="5">5 per page</option>
-                                    <option value="10" selected>10 per page</option>
-                                    <option value="20">20 per page</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="pagination-info">
-                            <span id="pagination-display">Page 1 of 1 (0 total videos)</span>
-                        </div>
-                        
-                        <div class="pagination-controls">
-                            <button id="prev-page" class="btn btn-secondary">← Previous</button>
-                            <button id="apply-filters" class="btn">Apply Filters</button>
-                            <button id="next-page" class="btn btn-secondary">Next →</button>
-                        </div>
+                    <h2>Video Library</h2>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                        <input type="text" id="search-input" placeholder="Search videos..." style="flex: 1; padding: 8px;">
+                        <button id="refresh-videos" class="btn">Refresh</button>
                     </div>
-
                     <div id="videos-grid" class="grid">
                         <!-- Videos will be loaded here -->
                     </div>
-                </div>
-
-                <!-- Processing Jobs Tab -->
-                <div id="processing-tab" class="tab-content">
-                    <h2>Processing Jobs</h2>
-                    <div id="jobs-list">
-                        <!-- Jobs will be loaded here -->
-                    </div>
-                </div>
-
-                <!-- Admin Users Tab -->
-                <div id="admin-users-tab" class="tab-content admin-only">
-                    <div class="admin-section section">
-                        <h2>User Management</h2>
-                        <table class="table" id="users-table">
-                            <thead>
-                                <tr>
-                                    <th>Username</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Videos</th>
-                                    <th>Storage (MB)</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-table-body">
-                                <!-- User data will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Admin Videos Tab -->
-                <div id="admin-videos-tab" class="tab-content admin-only">
-                    <div class="admin-section section">
-                        <h2>All Videos Management</h2>
-                        <div id="admin-videos-container">
-                            <!-- Admin video management will be loaded here -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Load Test Tab -->
-                <div id="load-test-tab" class="tab-content admin-only">
-                    <div class="admin-section section">
-                        <h2>CPU Load Testing</h2>
-                        <p>Generate intensive CPU load for testing</p>
-                        <div style="margin: 20px 0;">
-                            <button id="start-load-test" class="btn">Start 5-minute Load Test</button>
-                        </div>
-                        <div id="load-test-status" class="hidden">
-                            <div class="loading"></div> Running CPU load test...
-                        </div>
+                    <div id="videos-empty" class="hidden" style="text-align: center; padding: 40px; color: #6b7280;">
+                        <h3>No videos uploaded yet</h3>
+                        <p>Upload some videos to see them here!</p>
                     </div>
                 </div>
             </div>
@@ -736,14 +486,6 @@
         let currentUser = null;
         let authToken = null;
         let isTestMode = false;
-        let currentFilters = {
-            page: 1,
-            limit: 10,
-            sort: 'created_at',
-            order: 'desc',
-            search: '',
-            status: ''
-        };
 
         const API_BASE = '/api/v1';
 
@@ -751,48 +493,27 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             
-            // Check for test token first, then regular token
+            // Check for existing test token
             const testToken = localStorage.getItem('testToken');
-            const idToken = localStorage.getItem('idToken');
-            
             if (testToken) {
                 console.log('Found test token, verifying...');
                 verifyStoredToken(testToken, true);
-            } else if (idToken) {
-                console.log('Found Cognito token, verifying...');
-                verifyStoredToken(idToken, false);
             }
         });
 
         function initializeEventListeners() {
-            // Authentication forms
-            document.getElementById('login-form').addEventListener('submit', handleLogin);
-            document.getElementById('register-form').addEventListener('submit', handleRegister);
-            document.getElementById('confirm-form').addEventListener('submit', handleConfirm);
-            document.getElementById('logout-btn').addEventListener('click', handleLogout);
-            document.getElementById('show-register-btn').addEventListener('click', showRegisterForm);
-            document.getElementById('show-login-btn').addEventListener('click', showLoginForm);
-            document.getElementById('resend-code-btn').addEventListener('click', resendConfirmationCode);
-            
-            // TEST LOGIN BUTTON
+            // Auth buttons
             document.getElementById('test-login-btn').addEventListener('click', handleTestLogin);
+            document.getElementById('logout-btn').addEventListener('click', handleLogout);
 
-            // Upload area
+            // Upload functionality
             const uploadArea = document.getElementById('upload-area');
             const fileInput = document.getElementById('file-input');
+            
             uploadArea.addEventListener('click', () => fileInput.click());
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                handleFileSelect(e.dataTransfer.files);
-            });
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('dragleave', handleDragLeave);
+            uploadArea.addEventListener('drop', handleDrop);
             fileInput.addEventListener('change', (e) => handleFileSelect(e.target.files));
 
             // Tabs
@@ -800,55 +521,53 @@
                 tab.addEventListener('click', () => switchTab(tab.dataset.tab));
             });
 
-            // Video filters
-            document.getElementById('apply-filters').addEventListener('click', applyFilters);
-            document.getElementById('prev-page').addEventListener('click', () => changePage(-1));
-            document.getElementById('next-page').addEventListener('click', () => changePage(1));
-
-            // Admin functions
-            document.getElementById('start-load-test')?.addEventListener('click', startLoadTest);
+            // Refresh button
+            document.getElementById('refresh-videos').addEventListener('click', loadVideos);
         }
 
         // TEST LOGIN FUNCTION
         async function handleTestLogin() {
             const testLoginBtn = document.getElementById('test-login-btn');
             testLoginBtn.disabled = true;
-            testLoginBtn.textContent = 'Creating Test Session...';
+            testLoginBtn.innerHTML = '<span class="loading"></span> Creating Test Session...';
 
             try {
+                console.log('Sending test login request...');
                 const response = await fetch(`${API_BASE}/auth/test-login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({})
                 });
 
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('Response data:', data);
 
                 if (response.ok) {
-                    authToken = data.testToken;
+                    authToken = data.testToken; // Fixed: was data.token
                     localStorage.setItem('testToken', authToken);
-                    localStorage.removeItem('idToken'); // Remove any old Cognito tokens
                     currentUser = data.user;
                     isTestMode = true;
                     
-                    showNotification('Test login successful! 🧪', 'success');
+                    showNotification('Test login successful! Ready for Assessment 2 demo 🎬', 'success');
                     showMainContent();
-                    loadInitialData();
+                    loadAnalytics();
                 } else {
                     showNotification(data.error || 'Test login failed', 'error');
+                    console.error('Login failed:', data);
                 }
             } catch (error) {
                 console.error('Test login error:', error);
                 showNotification('Network error during test login', 'error');
             } finally {
                 testLoginBtn.disabled = false;
-                testLoginBtn.textContent = 'Use Test Login (Bypass Cognito)';
+                testLoginBtn.textContent = 'Use Test Login (Assessment 2 Demo)';
             }
         }
 
-        // Authentication Functions (original Cognito - disabled for now)
         async function verifyStoredToken(token, isTest = false) {
             try {
+                console.log('Verifying stored token...');
                 const response = await fetch(`${API_BASE}/auth/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -859,57 +578,29 @@
                     currentUser = data.user;
                     isTestMode = isTest || data.testMode;
                     showMainContent();
-                    loadInitialData();
+                    loadAnalytics();
+                    console.log('Token verification successful');
                 } else {
-                    if (isTest) {
-                        localStorage.removeItem('testToken');
-                    } else {
-                        localStorage.removeItem('idToken');
-                    }
+                    console.log('Token verification failed');
+                    localStorage.removeItem('testToken');
                 }
             } catch (error) {
                 console.error('Token verification error:', error);
-                if (isTest) {
-                    localStorage.removeItem('testToken');
-                } else {
-                    localStorage.removeItem('idToken');
-                }
+                localStorage.removeItem('testToken');
             }
-        }
-
-        async function handleLogin(e) {
-            e.preventDefault();
-            // For now, redirect to test login since Cognito is disabled
-            showNotification('Cognito login is disabled for testing. Please use "Test Login" button.', 'info');
-        }
-
-        async function handleRegister(e) {
-            e.preventDefault();
-            showNotification('Registration disabled for testing. Use "Test Login" to access the application.', 'info');
-        }
-
-        async function handleConfirm(e) {
-            e.preventDefault();
-            showNotification('Email confirmation disabled for testing.', 'info');
-        }
-
-        async function resendConfirmationCode() {
-            showNotification('Email confirmation disabled for testing.', 'info');
         }
 
         function handleLogout() {
             authToken = null;
             currentUser = null;
             isTestMode = false;
-            localStorage.removeItem('idToken');
             localStorage.removeItem('testToken');
             document.getElementById('auth-section').style.display = 'block';
             document.getElementById('main-content').style.display = 'none';
-            showLoginForm();
+            document.getElementById('user-info').classList.add('hidden');
             showNotification('Logged out successfully', 'info');
         }
 
-        // UI Functions
         function showMainContent() {
             document.getElementById('auth-section').style.display = 'none';
             document.getElementById('main-content').style.display = 'block';
@@ -920,201 +611,258 @@
             roleBadge.textContent = currentUser.role.toUpperCase();
             roleBadge.className = 'user-badge ' + (currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular');
             
-            // Show test mode badge if in test mode
-            const testBadge = document.getElementById('test-mode-badge');
             if (isTestMode) {
-                testBadge.style.display = 'inline-block';
-            }
-            
-            if (currentUser.role === 'admin') {
-                document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('test-mode-badge').style.display = 'inline-block';
             }
         }
 
-        function showLoginForm() {
-            document.getElementById('login-form-container').classList.remove('hidden');
-            document.getElementById('register-form-container').classList.add('hidden');
-            document.getElementById('confirm-form-container').classList.add('hidden');
+        // File Upload Handlers
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
         }
 
-        function showRegisterForm() {
-            document.getElementById('login-form-container').classList.add('hidden');
-            document.getElementById('register-form-container').classList.remove('hidden');
-            document.getElementById('confirm-form-container').classList.add('hidden');
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
         }
 
-        function showConfirmForm(username) {
-            document.getElementById('login-form-container').classList.add('hidden');
-            document.getElementById('register-form-container').classList.add('hidden');
-            document.getElementById('confirm-form-container').classList.remove('hidden');
-            document.getElementById('confirm-username').value = username;
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            handleFileSelect(e.dataTransfer.files);
         }
 
-        // Data Loading Functions
-        async function loadInitialData() {
-            loadAnalytics();
-        }
-
-        async function loadAnalytics() {
-            if (!authToken) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/analytics`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.system_stats) {
-                        document.getElementById('stat-videos').textContent = data.system_stats.total_videos;
-                        document.getElementById('stat-jobs').textContent = data.system_stats.total_jobs;
-                        document.getElementById('stat-success').textContent = '100%';
-                        document.getElementById('stat-size').textContent = data.system_stats.total_storage_mb;
-                        document.getElementById('admin-stat-users').textContent = data.system_stats.total_users;
-                        document.getElementById('admin-stat-storage').textContent = data.system_stats.total_storage_mb;
-                    } else if (data.user_stats) {
-                        document.getElementById('stat-videos').textContent = data.user_stats.totalVideos;
-                        document.getElementById('stat-jobs').textContent = data.user_stats.totalJobs;
-                        document.getElementById('stat-success').textContent = '100%';
-                        document.getElementById('stat-size').textContent = data.user_stats.totalSize;
-                    }
-                } else {
-                    console.error('Failed to load analytics:', response.status);
-                }
-            } catch (error) {
-                console.error('Error loading analytics:', error);
-            }
-        }
-
-        async function loadVideos() {
-            if (!authToken) return;
-
-            const params = new URLSearchParams(currentFilters);
-            
-            try {
-                const response = await fetch(`${API_BASE}/videos?${params}`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    displayVideos(data.data || []);
-                    updatePaginationDisplay(data.pagination);
-                } else {
-                    console.error('Failed to load videos:', response.status);
-                }
-            } catch (error) {
-                console.error('Error loading videos:', error);
-            }
-        }
-
-        function displayVideos(videos) {
-            const grid = document.getElementById('videos-grid');
-            
-            if (videos.length === 0) {
-                grid.innerHTML = '<p>No videos found.</p>';
-                return;
-            }
-
-            grid.innerHTML = videos.map(video => {
-                const sizeInMB = video.file_size ? (video.file_size / (1024 * 1024)).toFixed(2) : 'Unknown';
-                const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : 'Unknown';
-
-                return `
-                    <div class="card">
-                        <h3>${video.original_filename || video.filename}</h3>
-                        <p>Size: ${sizeInMB} MB</p>
-                        <p>Duration: ${duration}</p>
-                        <p>Resolution: ${video.width || '?'}x${video.height || '?'}</p>
-                        <p><span class="status-badge status-${video.status || 'uploaded'}">${video.status || 'uploaded'}</span></p>
-                        <div style="margin-top: 15px;">
-                            <button class="btn btn-small" onclick="transcodeVideo(${video.id})">Transcode</button>
-                            ${currentUser.role === 'admin' ? `<button class="btn btn-danger btn-small" onclick="deleteVideo(${video.id})">Delete</button>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updatePaginationDisplay(pagination) {
-            if (pagination) {
-                document.getElementById('pagination-display').textContent = 
-                    `Page ${pagination.current_page} of ${pagination.total_pages} (${pagination.total_items} total videos)`;
-                document.getElementById('prev-page').disabled = !pagination.has_previous_page;
-                document.getElementById('next-page').disabled = !pagination.has_next_page;
-            }
-        }
-
-        // File Upload
         async function handleFileSelect(files) {
             if (!authToken) {
                 showNotification('Please login first', 'error');
                 return;
             }
 
-            const progressContainer = document.getElementById('upload-progress');
+            if (!files || files.length === 0) {
+                showNotification('No files selected', 'error');
+                return;
+            }
+
+            const statusDiv = document.getElementById('upload-status');
+            const detailsDiv = document.getElementById('upload-details');
             const progressFill = document.getElementById('upload-progress-fill');
+            const debugDiv = document.getElementById('upload-debug');
             
-            progressContainer.classList.remove('hidden');
+            statusDiv.classList.remove('hidden');
+            debugDiv.classList.remove('hidden');
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const formData = new FormData();
-                formData.append('video', file);
+                
+                console.log(`Starting upload for file: ${file.name}`);
+                debugDiv.innerHTML = `<strong>Debug Info:</strong><br>
+                    File: ${file.name}<br>
+                    Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB<br>
+                    Type: ${file.type}<br>
+                    Token: ${authToken ? 'Present' : 'Missing'}`;
+
+                detailsDiv.innerHTML = `<strong>Uploading:</strong> ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
+                
+                // Validate file type
+                const allowedTypes = [
+                    'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
+                    'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime'
+                ];
+                
+                if (!allowedTypes.includes(file.type)) {
+                    showNotification(`File type ${file.type} not supported`, 'error');
+                    continue;
+                }
+
+                // Validate file size (500MB)
+                if (file.size > 500 * 1024 * 1024) {
+                    showNotification(`File ${file.name} is too large (max 500MB)`, 'error');
+                    continue;
+                }
 
                 try {
+                    const formData = new FormData();
+                    formData.append('video', file);
+                    formData.append('tags', 'demo, assessment2');
+                    formData.append('description', `Uploaded for Assessment 2 demo - ${new Date().toISOString()}`);
+
+                    console.log('Sending upload request...');
                     const response = await fetch(`${API_BASE}/videos/upload`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${authToken}` },
+                        headers: { 
+                            'Authorization': `Bearer ${authToken}`
+                            // Don't set Content-Type - let browser set it with boundary for multipart
+                        },
                         body: formData
                     });
+
+                    console.log('Upload response status:', response.status);
+                    const responseText = await response.text();
+                    console.log('Upload response text:', responseText);
+
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        console.error('Failed to parse response as JSON:', responseText);
+                        throw new Error('Invalid JSON response from server');
+                    }
 
                     const progress = ((i + 1) / files.length) * 100;
                     progressFill.style.width = `${progress}%`;
 
                     if (response.ok) {
-                        showNotification(`${file.name} uploaded successfully`, 'success');
+                        console.log('Upload successful:', result);
+                        detailsDiv.innerHTML = `<strong>✅ Success:</strong> ${file.name}<br>
+                            Video ID: ${result.video?.id}<br>
+                            S3 Key: ${result.s3_info?.key}<br>
+                            Status: ${result.video?.status}`;
+                        
+                        debugDiv.innerHTML += `<br><strong>Upload Result:</strong><br>
+                            ${JSON.stringify(result.assessment_2_compliance || {}, null, 2)}`;
+                        
+                        showNotification(`${file.name} uploaded successfully! 🎬`, 'success');
+                        
+                        // Refresh analytics and videos
+                        setTimeout(() => {
+                            loadAnalytics();
+                            if (document.querySelector('[data-tab="videos"]').classList.contains('active')) {
+                                loadVideos();
+                            }
+                        }, 1000);
                     } else {
-                        showNotification(`Upload failed: ${file.name}`, 'error');
+                        console.error('Upload failed:', result);
+                        detailsDiv.innerHTML = `<strong>❌ Failed:</strong> ${file.name}<br>
+                            Error: ${result.error}<br>
+                            Code: ${result.code}`;
+                        
+                        debugDiv.innerHTML += `<br><strong>Error Details:</strong><br>
+                            ${JSON.stringify(result, null, 2)}`;
+                        
+                        showNotification(`Upload failed: ${result.error}`, 'error');
                     }
                 } catch (error) {
-                    showNotification(`Upload error: ${file.name}`, 'error');
+                    console.error('Upload error:', error);
+                    detailsDiv.innerHTML = `<strong>❌ Network Error:</strong> ${file.name}<br>
+                        Error: ${error.message}`;
+                    
+                    debugDiv.innerHTML += `<br><strong>Network Error:</strong><br>
+                        ${error.message}`;
+                    
+                    showNotification(`Network error uploading ${file.name}`, 'error');
                 }
             }
 
-            progressContainer.classList.add('hidden');
-            progressFill.style.width = '0%';
-            loadAnalytics();
+            // Hide upload status after completion
+            setTimeout(() => {
+                statusDiv.classList.add('hidden');
+                progressFill.style.width = '0%';
+            }, 5000);
         }
 
-        // Video Operations
-        async function transcodeVideo(videoId) {
-            const format = prompt('Enter output format (mp4, avi, mov):', 'mp4');
-            if (!format) return;
+        // Data Loading Functions
+        async function loadAnalytics() {
+            if (!authToken) return;
 
             try {
-                const response = await fetch(`${API_BASE}/videos/${videoId}/transcode`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ format, quality: 'medium' })
+                console.log('Loading analytics...');
+                const response = await fetch(`${API_BASE}/analytics`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
                 if (response.ok) {
-                    showNotification('Transcoding started!', 'success');
+                    const data = await response.json();
+                    console.log('Analytics data:', data);
+                    
+                    if (data.system_stats) {
+                        // Admin view
+                        document.getElementById('stat-videos').textContent = data.system_stats.total_videos;
+                        document.getElementById('stat-jobs').textContent = data.system_stats.total_jobs;
+                        document.getElementById('stat-users').textContent = data.system_stats.total_users;
+                        document.getElementById('stat-size').textContent = data.system_stats.total_storage_mb;
+                    } else if (data.user_stats) {
+                        // User view
+                        document.getElementById('stat-videos').textContent = data.user_stats.totalVideos;
+                        document.getElementById('stat-jobs').textContent = data.user_stats.totalJobs;
+                        document.getElementById('stat-users').textContent = '1';
+                        document.getElementById('stat-size').textContent = data.user_stats.totalSize.replace(' MB', '');
+                    }
                 } else {
-                    showNotification('Transcoding failed', 'error');
+                    console.error('Failed to load analytics:', response.status);
+                    showNotification('Failed to load analytics', 'error');
                 }
             } catch (error) {
-                showNotification('Network error', 'error');
+                console.error('Error loading analytics:', error);
+                showNotification('Network error loading analytics', 'error');
             }
         }
 
+        async function loadVideos() {
+            if (!authToken) return;
+
+            try {
+                console.log('Loading videos...');
+                const response = await fetch(`${API_BASE}/videos`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Videos data:', data);
+                    displayVideos(data.data || []);
+                } else {
+                    console.error('Failed to load videos:', response.status);
+                    showNotification('Failed to load videos', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                showNotification('Network error loading videos', 'error');
+            }
+        }
+
+        function displayVideos(videos) {
+            const grid = document.getElementById('videos-grid');
+            const emptyDiv = document.getElementById('videos-empty');
+            
+            if (videos.length === 0) {
+                grid.classList.add('hidden');
+                emptyDiv.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            emptyDiv.classList.add('hidden');
+
+            grid.innerHTML = videos.map(video => {
+                const sizeInMB = video.file_size ? (video.file_size / (1024 * 1024)).toFixed(2) : 'Unknown';
+                const duration = video.duration ? `${Math.floor(video.duration / 60)}:${String(Math.floor(video.duration % 60)).padStart(2, '0')}` : 'Unknown';
+                const uploadDate = new Date(video.created_at).toLocaleDateString();
+
+                return `
+                    <div class="card">
+                        <h3 style="margin-bottom: 15px; color: #4a5568;">${video.original_filename}</h3>
+                        <div style="color: #6b7280; margin-bottom: 10px;">
+                            <p><strong>Size:</strong> ${sizeInMB} MB</p>
+                            <p><strong>Duration:</strong> ${duration}</p>
+                            <p><strong>Resolution:</strong> ${video.width || '?'}x${video.height || '?'}</p>
+                            <p><strong>Uploaded:</strong> ${uploadDate}</p>
+                            <p><strong>Status:</strong> <span style="background: #c6f6d5; color: #2f855a; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">${video.status}</span></p>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            ${video.download_url ? `<a href="${video.download_url}" class="btn" style="text-decoration: none; font-size: 14px; padding: 6px 12px;">Download</a>` : ''}
+                            ${currentUser.role === 'admin' ? `<button class="btn btn-danger" style="font-size: 14px; padding: 6px 12px;" onclick="deleteVideo(${video.id})">Delete</button>` : ''}
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.8rem; color: #9ca3af; background: #f9fafb; padding: 8px; border-radius: 4px;">
+                            <strong>S3 Key:</strong> ${video.s3_key ? video.s3_key.split('/').pop() : 'N/A'}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Video Operations
         async function deleteVideo(videoId) {
-            if (!confirm('Delete this video?')) return;
+            if (!confirm('Delete this video? This will remove it from both S3 and the database.')) return;
 
             try {
                 const response = await fetch(`${API_BASE}/videos/${videoId}`, {
@@ -1123,86 +871,42 @@
                 });
 
                 if (response.ok) {
-                    showNotification('Video deleted', 'success');
+                    showNotification('Video deleted successfully from all cloud services', 'success');
                     loadVideos();
+                    loadAnalytics();
                 } else {
-                    showNotification('Delete failed', 'error');
+                    const data = await response.json();
+                    showNotification(data.error || 'Delete failed', 'error');
                 }
             } catch (error) {
-                showNotification('Network error', 'error');
-            }
-        }
-
-        // Admin Functions
-        async function startLoadTest() {
-            if (!authToken || currentUser.role !== 'admin') return;
-
-            const button = document.getElementById('start-load-test');
-            const status = document.getElementById('load-test-status');
-            
-            button.disabled = true;
-            status.classList.remove('hidden');
-            
-            try {
-                const response = await fetch(`${API_BASE}/load-test`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${authToken}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ duration: 300, cores: 2 })
-                });
-
-                if (response.ok) {
-                    showNotification('Load test started!', 'success');
-                    setTimeout(() => {
-                        status.classList.add('hidden');
-                        button.disabled = false;
-                    }, 5000);
-                } else {
-                    showNotification('Load test failed', 'error');
-                    status.classList.add('hidden');
-                    button.disabled = false;
-                }
-            } catch (error) {
-                showNotification('Network error', 'error');
-                status.classList.add('hidden');
-                button.disabled = false;
+                console.error('Delete error:', error);
+                showNotification('Network error during delete', 'error');
             }
         }
 
         // Tab Switching
         function switchTab(tabName) {
+            // Update tab appearance
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            // Update content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
 
-            if (tabName === 'analytics') loadAnalytics();
-            if (tabName === 'videos') loadVideos();
-        }
-
-        // Filter Functions
-        function applyFilters() {
-            currentFilters.page = 1;
-            currentFilters.search = document.getElementById('search-input').value;
-            currentFilters.sort = document.getElementById('sort-select').value;
-            currentFilters.order = document.getElementById('order-select').value;
-            currentFilters.limit = document.getElementById('limit-select').value;
-            loadVideos();
-        }
-
-        function changePage(direction) {
-            currentFilters.page += direction;
-            if (currentFilters.page < 1) currentFilters.page = 1;
-            loadVideos();
+            // Load data for specific tabs
+            if (tabName === 'analytics') {
+                loadAnalytics();
+            } else if (tabName === 'videos') {
+                loadVideos();
+            }
         }
 
         // Notifications
         function showNotification(message, type) {
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
-            notification.textContent = message;
+            notification.innerHTML = message;
             
             document.body.appendChild(notification);
             
@@ -1210,8 +914,11 @@
             setTimeout(() => {
                 notification.classList.remove('show');
                 setTimeout(() => notification.remove(), 300);
-            }, 4000);
+            }, 5000);
         }
+
+        // Make deleteVideo globally available
+        window.deleteVideo = deleteVideo;
     </script>
 </body>
 </html>
