@@ -446,49 +446,7 @@ app.use((req, res, next) => {
 });
 
 // S3 Upload Configuration
-const upload = multer({
-  storage: multerS3({
-    s3: s3,
-    bucket: config.s3BucketName,
-    acl: 'private',
-    key: function (req, file, cb) {
-      const userId = req.user?.id || 'anonymous';
-      const timestamp = Date.now();
-      const randomId = crypto.randomUUID().substr(0, 8);
-      const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
-      console.log(`🔑 Generating S3 key: ${key}`);
-      cb(null, key);
-    },
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    metadata: function (req, file, cb) {
-      cb(null, {
-        fieldName: file.fieldname,
-        originalName: file.originalname,
-        uploadedBy: req.user?.id || 'anonymous',
-        uploadTime: new Date().toISOString(),
-        contentType: file.mimetype
-      });
-    },
-    serverSideEncryption: 'AES256'
-  }),
-  limits: { 
-    fileSize: 500 * 1024 * 1024, // 500MB
-    files: 5
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
-      'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime', 'application/octet-stream'
-    ];
-    
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`File type ${file.mimetype} not allowed`), false);
-    }
-  }
-});
+let upload;
 
 // Authentication middleware
 const authenticateTest = async (req, res, next) => {
@@ -1515,7 +1473,49 @@ const startServer = async () => {
     await initializeCloudServices();
     await initializeDatabase();
     await initializeRedis();
-    
+     upload = multer({
+      storage: multerS3({
+        s3: s3,
+        bucket: config.s3BucketName,  // ✅ Now this is properly loaded from Parameter Store
+        acl: 'private',
+        key: function (req, file, cb) {
+          const userId = req.user?.id || 'anonymous';
+          const timestamp = Date.now();
+          const randomId = crypto.randomUUID().substr(0, 8);
+          const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+          const key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
+          console.log(`🔑 Generating S3 key: ${key}`);
+          cb(null, key);
+        },
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        metadata: function (req, file, cb) {
+          cb(null, {
+            fieldName: file.fieldname,
+            originalName: file.originalname,
+            uploadedBy: req.user?.id || 'anonymous',
+            uploadTime: new Date().toISOString(),
+            contentType: file.mimetype
+          });
+        },
+        serverSideEncryption: 'AES256'
+      }),
+      limits: { 
+        fileSize: 500 * 1024 * 1024, // 500MB
+        files: 5
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+          'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
+          'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime', 'application/octet-stream'
+        ];
+        
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error(`File type ${file.mimetype} not allowed`), false);
+        }
+      }
+    });
     console.log('\n✅ CORE CRITERIA STATUS:');
     console.log('   ✅ Statelessness: No local file storage');
     console.log('   ✅ Data Persistence 1: PostgreSQL/RDS for metadata'); 
