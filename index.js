@@ -723,7 +723,85 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
     });
   }
 });
+// Generate pre-signed URL for direct upload
+app.post(`${API_BASE}/videos/upload-url`, authenticateTest, async (req, res) => {
+  try {
+    const { filename, contentType } = req.body;
+    
+    if (!filename || !contentType) {
+      return res.status(400).json({ error: 'filename and contentType required' });
+    }
+    
+    const userId = req.user.id;
+    const timestamp = Date.now();
+    const randomId = crypto.randomUUID().substr(0, 8);
+    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
+    
+    const uploadURL = s3.getSignedUrl('putObject', {
+      Bucket: S3_BUCKET,
+      Key: key,
+      ContentType: contentType,
+      Expires: 300, // 5 minutes
+      ACL: 'private'
+    });
+    
+    res.json({
+      success: true,
+      uploadURL: uploadURL,
+      key: key,
+      expires: 300,
+      assessment_2_feature: 'S3 Pre-signed URLs - Direct client upload to S3'
+    });
+    
+  } catch (error) {
+    console.error('Pre-signed URL generation error:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
 
+// Store video metadata after direct S3 upload
+app.post(`${API_BASE}/videos/confirm-upload`, authenticateTest, async (req, res) => {
+  try {
+    const { key, originalFilename, fileSize, contentType } = req.body;
+    
+    // Save metadata to PostgreSQL after direct S3 upload
+    const result = await pool.query(
+      `INSERT INTO videos (
+        user_id, original_filename, s3_key, s3_bucket, file_size, 
+        mime_type, status, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+      RETURNING *`,
+      [
+        req.user.id,
+        originalFilename,
+        key,
+        S3_BUCKET,
+        fileSize,
+        contentType,
+        'uploaded_direct_s3',
+        new Date()
+      ]
+    );
+
+    const video = result.rows[0];
+    
+    res.json({
+      success: true,
+      message: 'Direct S3 upload confirmed',
+      video: video,
+      assessment_2_demo: {
+        feature: 'S3 Pre-signed URLs',
+        workflow: 'Browser -> S3 Direct -> Metadata to PostgreSQL',
+        benefit: 'Reduced server load, faster uploads'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Upload confirmation error:', error);
+    res.status(500).json({ error: 'Failed to confirm upload' });
+  }
+});
 // ANALYTICS - Query both persistence services
 app.get(`${API_BASE}/analytics`, authenticateTest, async (req, res) => {
   try {
