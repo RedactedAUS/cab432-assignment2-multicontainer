@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database (First Data Persistence Service)
+  # PostgreSQL Database (First Data Persistence Service - Assessment 2)
   postgres:
     image: postgres:15-alpine
-    container_name: postgres-db
+    container_name: postgres-db-assessment2
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
@@ -22,48 +22,39 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis Cache (Optional - for future caching criterion)
-  redis:
-    image: redis:7-alpine
-    container_name: redis-cache
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - app-network
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Main Application (Stateless)
+  # Main Application (Stateless - Assessment 2 Core Criterion)
   app:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: mpeg-api-app
+    container_name: mpeg-api-assessment2
     ports:
       - "${PORT:-3000}:3000"
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3000
-      # AWS Configuration
-      - AWS_REGION=${AWS_REGION}
+      
+      # AWS Configuration for S3 (Second Persistence Service)
+      - AWS_REGION=${AWS_REGION:-ap-southeast-2}
       - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
-      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
-      # Database Configuration (PostgreSQL)
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME:-cab432-n11538082-videos}
+      
+      # Database Configuration (PostgreSQL RDS simulation)
       - RDS_HOSTNAME=postgres
       - RDS_PORT=5432
       - RDS_USERNAME=postgres
       - RDS_PASSWORD=password
       - RDS_DB_NAME=mpegapi
+      
       # CORS Configuration
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:80}
-    # NO VOLUME MOUNTS FOR STATELESSNESS - all data in cloud services
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      
+      # Assessment 2 Specific
+      - ASSESSMENT_MODE=assessment2
+      - ENABLE_DEBUG_LOGGING=true
+      
+    # CRITICAL: NO VOLUME MOUNTS FOR STATELESSNESS
+    # All files stored in S3, metadata in PostgreSQL
     restart: unless-stopped
     depends_on:
       postgres:
@@ -71,15 +62,16 @@ services:
     networks:
       - app-network
     healthcheck:
-      test: ["CMD", "node", "-e", "const http = require('http'); const req = http.request({hostname:'localhost',port:3000,path:'/api/v1/health',timeout:5000}, (res) => process.exit(res.statusCode === 200 ? 0 : 1)); req.on('error', () => process.exit(1)); req.end();"]
+      test: ["CMD", "node", "healthcheck.js"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
 
-  # NGINX Reverse Proxy (Production setup)
+  # NGINX Reverse Proxy (Production-like setup)
   nginx:
     image: nginx:alpine
-    container_name: nginx-proxy
+    container_name: nginx-proxy-assessment2
     ports:
       - "80:80"
     volumes:
@@ -92,11 +84,11 @@ services:
       - app-network
 
 volumes:
+  # Only database volume - no file storage volumes for statelessness
   postgres_data:
-    driver: local
-  redis_data:
     driver: local
 
 networks:
   app-network:
     driver: bridge
+    name: assessment2-network
