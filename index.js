@@ -12,6 +12,8 @@ const AWS = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const { Pool } = require('pg');
 const crypto = require("crypto");
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
+const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 // Configure FFmpeg
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
