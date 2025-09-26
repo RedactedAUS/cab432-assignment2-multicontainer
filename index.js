@@ -12,8 +12,6 @@ const AWS = require('aws-sdk');
 const multerS3 = require('multer-s3');
 const { Pool } = require('pg');
 const crypto = require("crypto");
-const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const { PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 // Configure FFmpeg
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -725,85 +723,252 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
     });
   }
 });
-// Generate pre-signed URL for direct upload
+
+// ASSESSMENT 2 ADDITIONAL CRITERIA: S3 PRE-SIGNED URLS
+// Generate pre-signed URL for direct upload to S3
 app.post(`${API_BASE}/videos/upload-url`, authenticateTest, async (req, res) => {
   try {
     const { filename, contentType } = req.body;
     
     if (!filename || !contentType) {
-      return res.status(400).json({ error: 'filename and contentType required' });
+      return res.status(400).json({
+        error: 'filename and contentType are required',
+        code: 'MISSING_PARAMETERS',
+        required_fields: ['filename', 'contentType']
+      });
     }
+
+    // Validate content type
+    const allowedTypes = [
+      'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
+      'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime'
+    ];
     
-    const userId = req.user.id;
+    if (!allowedTypes.includes(contentType)) {
+      return res.status(400).json({
+        error: `Content type ${contentType} not allowed`,
+        code: 'INVALID_CONTENT_TYPE',
+        allowed_types: allowedTypes
+      });
+    }
+
+    // Generate unique S3 key
+    const userId = req.user?.id || 'anonymous';
     const timestamp = Date.now();
     const randomId = crypto.randomUUID().substr(0, 8);
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
-    
-    const uploadURL = s3.getSignedUrl('putObject', {
+    const s3Key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
+
+    console.log(`🔐 Generating pre-signed URLs for: ${s3Key}`);
+
+    // Generate pre-signed URL for upload (PUT)
+    const uploadUrl = s3.getSignedUrl('putObject', {
       Bucket: S3_BUCKET,
-      Key: key,
+      Key: s3Key,
       ContentType: contentType,
-      Expires: 300, // 5 minutes
-      ACL: 'private'
+      Expires: 3600, // 1 hour
+      ServerSideEncryption: 'AES256',
+      Metadata: {
+        'uploaded-by': req.user?.id.toString() || 'anonymous',
+        'upload-time': new Date().toISOString(),
+        'original-filename': filename
+      }
     });
-    
+
+    // Generate pre-signed URL for download (GET) - will be used after upload
+    const downloadUrl = s3.getSignedUrl('getObject', {
+      Bucket: S3_BUCKET,
+      Key: s3Key,
+      Expires: 3600,
+      ResponseContentDisposition: `attachment; filename="${filename}"`
+    });
+
     res.json({
       success: true,
-      uploadURL: uploadURL,
-      key: key,
-      expires: 300,
-      assessment_2_feature: 'S3 Pre-signed URLs - Direct client upload to S3'
+      message: 'Pre-signed URLs generated successfully',
+      upload_url: uploadUrl,
+      download_url: downloadUrl,
+      s3_key: s3Key,
+      expires_in: 3600,
+      metadata: {
+        filename: filename,
+        content_type: contentType,
+        bucket: S3_BUCKET,
+        user_id: req.user?.id
+      },
+      upload_instructions: {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType
+        },
+        note: 'Upload the file directly to the upload_url using PUT method with the file as the request body'
+      },
+      assessment_2_demo: {
+        direct_s3_upload: 'Client can upload directly to S3 without server processing',
+        stateless: 'Server only generates URLs, does not handle file data',
+        secure_access: 'Pre-signed URLs provide temporary, secure access to private S3 bucket'
+      }
     });
-    
+
   } catch (error) {
-    console.error('Pre-signed URL generation error:', error);
-    res.status(500).json({ error: 'Failed to generate upload URL' });
+    console.error('❌ Pre-signed URL generation error:', error);
+    res.status(500).json({
+      error: 'Failed to generate pre-signed URLs',
+      code: 'PRESIGNED_URL_ERROR',
+      details: error.message
+    });
   }
 });
 
-// Store video metadata after direct S3 upload
+// Confirm upload after direct S3 upload (stores metadata in PostgreSQL)
 app.post(`${API_BASE}/videos/confirm-upload`, authenticateTest, async (req, res) => {
   try {
-    const { key, originalFilename, fileSize, contentType } = req.body;
+    const { s3_key, original_filename, file_size, content_type, description, tags } = req.body;
     
+    if (!s3_key || !original_filename) {
+      return res.status(400).json({
+        error: 's3_key and original_filename are required',
+        code: 'MISSING_PARAMETERS'
+      });
+    }
+
+    console.log(`📝 Confirming direct S3 upload: ${s3_key}`);
+
+    // Verify the file actually exists in S3
+    try {
+      await s3.headObject({
+        Bucket: S3_BUCKET,
+        Key: s3_key
+      }).promise();
+    } catch (s3Error) {
+      return res.status(404).json({
+        error: 'File not found in S3',
+        code: 'S3_FILE_NOT_FOUND',
+        s3_key: s3_key
+      });
+    }
+
     // Save metadata to PostgreSQL after direct S3 upload
     const result = await pool.query(
       `INSERT INTO videos (
         user_id, original_filename, s3_key, s3_bucket, file_size, 
-        mime_type, status, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+        mime_type, status, tags, description, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
       RETURNING *`,
       [
         req.user.id,
-        originalFilename,
-        key,
+        original_filename,
+        s3_key,
         S3_BUCKET,
-        fileSize,
-        contentType,
+        file_size || null,
+        content_type,
         'uploaded_direct_s3',
+        tags || '',
+        description || '',
         new Date()
       ]
     );
 
     const video = result.rows[0];
+    console.log(`✅ Direct S3 upload confirmed and metadata saved with ID: ${video.id}`);
+
+    // Generate fresh download URL
+    const downloadUrl = s3.getSignedUrl('getObject', {
+      Bucket: S3_BUCKET,
+      Key: s3_key,
+      Expires: 3600,
+      ResponseContentDisposition: `attachment; filename="${original_filename}"`
+    });
     
-    res.json({
+    res.status(201).json({
       success: true,
-      message: 'Direct S3 upload confirmed',
-      video: video,
+      message: 'Direct S3 upload confirmed and metadata saved',
+      video: {
+        id: video.id,
+        original_filename: video.original_filename,
+        s3_key: video.s3_key,
+        file_size: video.file_size,
+        status: video.status,
+        created_at: video.created_at
+      },
+      download_url: downloadUrl,
       assessment_2_demo: {
-        feature: 'S3 Pre-signed URLs',
-        workflow: 'Browser -> S3 Direct -> Metadata to PostgreSQL',
-        benefit: 'Reduced server load, faster uploads'
+        feature: 'S3 Pre-signed URLs - Direct Upload Workflow',
+        workflow: 'Browser -> S3 Direct Upload -> Metadata to PostgreSQL',
+        benefits: [
+          'Reduced server load - no file processing on server',
+          'Faster uploads - direct to S3',
+          'Stateless design - server only handles metadata',
+          'Secure - private bucket with pre-signed URLs'
+        ]
       }
     });
     
   } catch (error) {
-    console.error('Upload confirmation error:', error);
-    res.status(500).json({ error: 'Failed to confirm upload' });
+    console.error('❌ Upload confirmation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to confirm upload',
+      code: 'CONFIRMATION_ERROR',
+      details: error.message 
+    });
   }
 });
+
+// Get fresh pre-signed download URL for existing video
+app.get(`${API_BASE}/videos/:id/download-url`, authenticateTest, async (req, res) => {
+  try {
+    const videoId = parseInt(req.params.id);
+    
+    if (isNaN(videoId)) {
+      return res.status(400).json({ error: 'Invalid video ID' });
+    }
+
+    // Get video info from database
+    const videoResult = await pool.query(
+      'SELECT * FROM videos WHERE id = $1 AND (user_id = $2 OR $3 = \'admin\')',
+      [videoId, req.user.id, req.user.role]
+    );
+
+    if (videoResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Video not found or access denied',
+        video_id: videoId
+      });
+    }
+
+    const video = videoResult.rows[0];
+
+    // Generate fresh pre-signed download URL
+    const downloadUrl = s3.getSignedUrl('getObject', {
+      Bucket: video.s3_bucket,
+      Key: video.s3_key,
+      Expires: 3600,
+      ResponseContentDisposition: `attachment; filename="${video.original_filename}"`
+    });
+
+    res.json({
+      success: true,
+      video: {
+        id: video.id,
+        filename: video.original_filename,
+        size: video.file_size
+      },
+      download_url: downloadUrl,
+      expires_in: 3600,
+      generated_at: new Date().toISOString(),
+      assessment_2_feature: 'Fresh pre-signed URLs for secure, temporary access'
+    });
+
+  } catch (error) {
+    console.error('❌ Download URL generation error:', error);
+    res.status(500).json({
+      error: 'Failed to generate download URL',
+      code: 'DOWNLOAD_URL_ERROR',
+      details: error.message
+    });
+  }
+});
+
 // ANALYTICS - Query both persistence services
 app.get(`${API_BASE}/analytics`, authenticateTest, async (req, res) => {
   try {
@@ -893,7 +1058,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
+// 404 handler - UPDATED with new endpoints
 app.use('*', (req, res) => {
   res.status(404).json({
     error: 'API endpoint not found',
@@ -905,7 +1070,10 @@ app.use('*', (req, res) => {
       `POST ${API_BASE}/auth/test-login`,
       `GET ${API_BASE}/auth/me`,
       `POST ${API_BASE}/videos/upload`,
+      `POST ${API_BASE}/videos/upload-url`,
+      `POST ${API_BASE}/videos/confirm-upload`,
       `GET ${API_BASE}/videos`,
+      `GET ${API_BASE}/videos/:id/download-url`,
       `DELETE ${API_BASE}/videos/:id`,
       `GET ${API_BASE}/analytics`
     ]
@@ -936,6 +1104,7 @@ const startServer = async () => {
     console.log('   ✓ Statelessness: No local file storage');
     console.log('   ✓ Data Persistence 1: PostgreSQL/RDS for metadata'); 
     console.log('   ✓ Data Persistence 2: S3 Object Storage for videos');
+    console.log('   ✓ S3 Pre-signed URLs: Direct client uploads and downloads');
     console.log('   ⏳ Authentication: Test mode (Cognito pending)');
     
     // Initialize services in order
@@ -947,7 +1116,8 @@ const startServer = async () => {
       console.log(`🔗 API Base URL: http://localhost:${PORT}${API_BASE}`);
       console.log(`🏥 Health Check: http://localhost:${PORT}${API_BASE}/health`);
       console.log(`🧪 Test Login: POST ${API_BASE}/auth/test-login`);
-      console.log(`📁 Upload: POST ${API_BASE}/videos/upload`);
+      console.log(`📁 Upload (Traditional): POST ${API_BASE}/videos/upload`);
+      console.log(`🔐 Upload (Pre-signed): POST ${API_BASE}/videos/upload-url`);
       console.log('🎯 Ready for Assessment 2 demonstration!');
     });
     
