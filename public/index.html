@@ -144,6 +144,29 @@
             font-size: 14px;
         }
 
+        .btn-test {
+            background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);
+        }
+
+        .test-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #fbb040;
+            background: #fef5e7;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .test-section h3 {
+            color: #c05621;
+            margin-bottom: 10px;
+        }
+
+        .test-section p {
+            color: #7c2d12;
+            margin-bottom: 15px;
+        }
+
         .main-content {
             display: none;
         }
@@ -461,6 +484,7 @@
                 <div>
                     <span>Welcome, <strong id="username-display"></strong></span>
                     <span id="role-badge" class="user-badge"></span>
+                    <span id="test-mode-badge" class="user-badge" style="background: #ed8936; display: none;">TEST MODE</span>
                 </div>
                 <button id="logout-btn" class="btn btn-danger">Logout</button>
             </div>
@@ -479,9 +503,19 @@
                         <label for="password">Password</label>
                         <input type="password" id="password" required value="QWERTYpkr12#">
                     </div>
-                    <button type="submit" class="btn" id="login-btn">Login</button>
+                    <button type="submit" class="btn" id="login-btn">Login with Cognito</button>
                     <button type="button" class="btn btn-secondary" id="show-register-btn">Create Account</button>
                 </form>
+
+                <!-- TEST AUTHENTICATION SECTION -->
+                <div class="test-section">
+                    <h3>🧪 Testing Mode</h3>
+                    <p>For testing cloud services without Cognito authentication (Assignment 2 testing):</p>
+                    <button type="button" id="test-login-btn" class="btn btn-test">Use Test Login (Bypass Cognito)</button>
+                    <p style="font-size: 0.9rem; margin-top: 10px;">
+                        <strong>Note:</strong> Test login creates an admin user for testing all features.
+                    </p>
+                </div>
             </div>
 
             <div id="register-form-container" class="hidden">
@@ -575,7 +609,7 @@
                 <!-- Upload Tab -->
                 <div id="upload-tab" class="tab-content">
                     <div class="upload-area" id="upload-area">
-                        <div class="upload-icon">��</div>
+                        <div class="upload-icon">📹</div>
                         <h3>Drag & Drop Video Files Here</h3>
                         <p>Or click to browse files</p>
                         <input type="file" id="file-input" accept="video/*" multiple style="display: none;">
@@ -701,6 +735,7 @@
         // Global variables
         let currentUser = null;
         let authToken = null;
+        let isTestMode = false;
         let currentFilters = {
             page: 1,
             limit: 10,
@@ -716,10 +751,16 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeEventListeners();
             
-            // Check for existing token
+            // Check for test token first, then regular token
+            const testToken = localStorage.getItem('testToken');
             const idToken = localStorage.getItem('idToken');
-            if (idToken) {
-                verifyStoredToken(idToken);
+            
+            if (testToken) {
+                console.log('Found test token, verifying...');
+                verifyStoredToken(testToken, true);
+            } else if (idToken) {
+                console.log('Found Cognito token, verifying...');
+                verifyStoredToken(idToken, false);
             }
         });
 
@@ -732,6 +773,9 @@
             document.getElementById('show-register-btn').addEventListener('click', showRegisterForm);
             document.getElementById('show-login-btn').addEventListener('click', showLoginForm);
             document.getElementById('resend-code-btn').addEventListener('click', resendConfirmationCode);
+            
+            // TEST LOGIN BUTTON
+            document.getElementById('test-login-btn').addEventListener('click', handleTestLogin);
 
             // Upload area
             const uploadArea = document.getElementById('upload-area');
@@ -765,8 +809,45 @@
             document.getElementById('start-load-test')?.addEventListener('click', startLoadTest);
         }
 
-        // Authentication Functions
-        async function verifyStoredToken(token) {
+        // TEST LOGIN FUNCTION
+        async function handleTestLogin() {
+            const testLoginBtn = document.getElementById('test-login-btn');
+            testLoginBtn.disabled = true;
+            testLoginBtn.textContent = 'Creating Test Session...';
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/test-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.testToken;
+                    localStorage.setItem('testToken', authToken);
+                    localStorage.removeItem('idToken'); // Remove any old Cognito tokens
+                    currentUser = data.user;
+                    isTestMode = true;
+                    
+                    showNotification('Test login successful! 🧪', 'success');
+                    showMainContent();
+                    loadInitialData();
+                } else {
+                    showNotification(data.error || 'Test login failed', 'error');
+                }
+            } catch (error) {
+                console.error('Test login error:', error);
+                showNotification('Network error during test login', 'error');
+            } finally {
+                testLoginBtn.disabled = false;
+                testLoginBtn.textContent = 'Use Test Login (Bypass Cognito)';
+            }
+        }
+
+        // Authentication Functions (original Cognito - disabled for now)
+        async function verifyStoredToken(token, isTest = false) {
             try {
                 const response = await fetch(`${API_BASE}/auth/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -776,149 +857,52 @@
                     const data = await response.json();
                     authToken = token;
                     currentUser = data.user;
+                    isTestMode = isTest || data.testMode;
                     showMainContent();
                     loadInitialData();
                 } else {
-                    localStorage.removeItem('idToken');
+                    if (isTest) {
+                        localStorage.removeItem('testToken');
+                    } else {
+                        localStorage.removeItem('idToken');
+                    }
                 }
             } catch (error) {
                 console.error('Token verification error:', error);
-                localStorage.removeItem('idToken');
+                if (isTest) {
+                    localStorage.removeItem('testToken');
+                } else {
+                    localStorage.removeItem('idToken');
+                }
             }
         }
 
         async function handleLogin(e) {
             e.preventDefault();
-            const loginBtn = document.getElementById('login-btn');
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Logging in...';
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    authToken = data.tokens.idToken;
-                    localStorage.setItem('idToken', authToken);
-                    localStorage.setItem('refreshToken', data.tokens.refreshToken);
-                    currentUser = data.user;
-                    showNotification('Login successful!', 'success');
-                    showMainContent();
-                    loadInitialData();
-                } else if (response.status === 403 && data.error === 'User email not confirmed') {
-                    showNotification('Please confirm your email first', 'error');
-                    showConfirmForm(username);
-                } else {
-                    showNotification(data.error || 'Login failed', 'error');
-                }
-            } catch (error) {
-                showNotification('Network error', 'error');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Login';
-            }
+            // For now, redirect to test login since Cognito is disabled
+            showNotification('Cognito login is disabled for testing. Please use "Test Login" button.', 'info');
         }
 
         async function handleRegister(e) {
             e.preventDefault();
-            const registerBtn = document.getElementById('register-btn');
-            const username = document.getElementById('reg-username').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
-
-            registerBtn.disabled = true;
-            registerBtn.textContent = 'Creating Account...';
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Account created! Check your email for confirmation code.', 'success');
-                    showConfirmForm(username);
-                } else {
-                    showNotification(data.error || 'Registration failed', 'error');
-                }
-            } catch (error) {
-                showNotification('Network error', 'error');
-            } finally {
-                registerBtn.disabled = false;
-                registerBtn.textContent = 'Create Account';
-            }
+            showNotification('Registration disabled for testing. Use "Test Login" to access the application.', 'info');
         }
 
         async function handleConfirm(e) {
             e.preventDefault();
-            const confirmBtn = document.getElementById('confirm-btn');
-            const username = document.getElementById('confirm-username').value;
-            const confirmationCode = document.getElementById('confirmation-code').value;
-
-            confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Confirming...';
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/confirm`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, confirmationCode })
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showNotification('Email confirmed! You can now login.', 'success');
-                    showLoginForm();
-                    document.getElementById('username').value = username;
-                } else {
-                    showNotification(data.error || 'Confirmation failed', 'error');
-                }
-            } catch (error) {
-                showNotification('Network error', 'error');
-            } finally {
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Confirm Account';
-            }
+            showNotification('Email confirmation disabled for testing.', 'info');
         }
 
         async function resendConfirmationCode() {
-            const username = document.getElementById('confirm-username').value;
-            if (!username) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/resend-code`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username })
-                });
-
-                if (response.ok) {
-                    showNotification('Confirmation code resent!', 'success');
-                } else {
-                    showNotification('Failed to resend code', 'error');
-                }
-            } catch (error) {
-                showNotification('Network error', 'error');
-            }
+            showNotification('Email confirmation disabled for testing.', 'info');
         }
 
         function handleLogout() {
             authToken = null;
             currentUser = null;
+            isTestMode = false;
             localStorage.removeItem('idToken');
-            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('testToken');
             document.getElementById('auth-section').style.display = 'block';
             document.getElementById('main-content').style.display = 'none';
             showLoginForm();
@@ -935,6 +919,12 @@
             const roleBadge = document.getElementById('role-badge');
             roleBadge.textContent = currentUser.role.toUpperCase();
             roleBadge.className = 'user-badge ' + (currentUser.role === 'admin' ? 'admin-badge' : 'user-badge-regular');
+            
+            // Show test mode badge if in test mode
+            const testBadge = document.getElementById('test-mode-badge');
+            if (isTestMode) {
+                testBadge.style.display = 'inline-block';
+            }
             
             if (currentUser.role === 'admin') {
                 document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
@@ -989,6 +979,8 @@
                         document.getElementById('stat-success').textContent = '100%';
                         document.getElementById('stat-size').textContent = data.user_stats.totalSize;
                     }
+                } else {
+                    console.error('Failed to load analytics:', response.status);
                 }
             } catch (error) {
                 console.error('Error loading analytics:', error);
@@ -1009,6 +1001,8 @@
                     const data = await response.json();
                     displayVideos(data.data || []);
                     updatePaginationDisplay(data.pagination);
+                } else {
+                    console.error('Failed to load videos:', response.status);
                 }
             } catch (error) {
                 console.error('Error loading videos:', error);
