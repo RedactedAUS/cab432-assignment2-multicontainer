@@ -244,7 +244,7 @@ const upload = multer({
     
     const allowedTypes = [
       'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
-      'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime'
+      'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime', 'application/octet-stream'
     ];
     
     if (allowedTypes.includes(file.mimetype)) {
