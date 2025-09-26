@@ -14,11 +14,11 @@ services:
       - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
       - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
       - COGNITO_REGION=${COGNITO_REGION}
-      - RDS_HOSTNAME=${RDS_HOSTNAME}
-      - RDS_PORT=${RDS_PORT}
-      - RDS_USERNAME=${RDS_USERNAME}
-      - RDS_PASSWORD=${RDS_PASSWORD}
-      - RDS_DB_NAME=${RDS_DB_NAME}
+      - RDS_HOSTNAME=postgres
+      - RDS_PORT=5432
+      - RDS_USERNAME=postgres
+      - RDS_PASSWORD=password
+      - RDS_DB_NAME=mpegapi
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     volumes:
       - ./uploads:/app/uploads
@@ -27,8 +27,24 @@ services:
     restart: unless-stopped
     depends_on:
       - redis
+      - postgres
     networks:
       - app-network
+  
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mpegapi
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - app-network
+  
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -39,6 +55,7 @@ services:
     networks:
       - app-network
     command: redis-server --appendonly yes
+  
   nginx:
     image: nginx:alpine
     ports:
@@ -50,9 +67,13 @@ services:
     restart: unless-stopped
     networks:
       - app-network
+
 volumes:
   redis-data:
     driver: local
+  postgres-data:
+    driver: local
+
 networks:
   app-network:
     driver: bridge

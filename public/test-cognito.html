@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
+</head>
+<body>
+    <h1>Cognito Test</h1>
+    <button onclick="testCognito()">Test Registration</button>
+    <div id="result"></div>
+    
+    <script>
+        function testCognito() {
+            console.log('Testing Cognito...');
+            
+            const poolData = {
+                UserPoolId: 'ap-southeast-2_hqzxMJpG0',
+                ClientId: '5h01jTvtm04nav2fp056ffg1v8'
+            };
+            
+            const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+            console.log('UserPool created:', userPool);
+            
+            const attributeList = [];
+            const dataEmail = {
+                Name: 'email',
+                Value: 'test@test.com'
+            };
+            attributeList.push(new AmazonCognitoIdentity.CognitoUserAttribute(dataEmail));
+            
+            userPool.signUp('testuser123', 'TempPass123!', attributeList, null, function(err, result) {
+                console.log('SignUp result:', err, result);
+                document.getElementById('result').innerHTML = err ? 'Error: ' + err.message : 'Success: ' + JSON.stringify(result);
+            });
+        }
+    </script>
+</body>
+</html>
