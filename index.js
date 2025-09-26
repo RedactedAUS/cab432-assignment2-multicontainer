@@ -569,7 +569,7 @@ app.get(`${API_BASE}/health`, async (req, res) => {
     await s3.headBucket({ Bucket: config.s3BucketName }).promise();
     healthStatus.services.s3 = {
       status: 'connected',
-      bucket: config.s3BucketName,
+      bucket: process.env.S3_BUCKET_NAME,
       region: region
     };
   } catch (error) {
