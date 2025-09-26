@@ -426,11 +426,58 @@ const uploadLimiter = createRateLimit(15 * 60 * 1000, 50, 'Too many uploads');
 
 // CORS configuration
 app.use(cors({
-  origin: '*',
+  origin: true, // Allow all origins for development
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Version'],
-  credentials: false
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Version', 'X-Requested-With'],
+  credentials: false,
+  optionsSuccessStatus: 200 // Support legacy browsers
 }));
+
+// Explicit OPTIONS handler for all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, X-API-Version');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  res.sendStatus(200);
+});
+
+// Additional middleware to ensure CORS headers on all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, X-API-Version');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
+// Explicit OPTIONS handler for all routes
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, X-API-Version');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  res.sendStatus(200);
+});
+
+// Additional middleware to ensure CORS headers on all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With, X-API-Version');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // Standard middleware
 app.use(express.json({ limit: '50mb' }));
