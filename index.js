@@ -1,4 +1,4 @@
-// Complete updated index.js - Assessment 2 with Cognito Integration
+// Complete updated index.js - Assessment 2 with Cognito Integration + Test Bypass
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -224,8 +224,82 @@ const upload = multer({
   }
 });
 
-// Authentication Middleware with Cognito JWT Verification
-const authenticateToken = async (req, res, next) => {
+// ===============================
+// TEST AUTHENTICATION ENDPOINTS
+// ===============================
+
+// Test endpoint to simulate login and get a test token
+app.post(`${API_BASE}/auth/test-login`, async (req, res) => {
+  console.log('TEST LOGIN - Creating mock user session');
+  
+  try {
+    // Create or get a test user from database
+    let testUserResult = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      ['testuser']
+    );
+    
+    let testUser;
+    if (testUserResult.rows.length === 0) {
+      // Create test user
+      testUserResult = await pool.query(
+        `INSERT INTO users (cognito_sub, username, email, email_verified, role) 
+         VALUES ($1, $2, $3, $4, $5) 
+         RETURNING *`,
+        ['test-sub-12345', 'testuser', 'test@test.com', true, 'admin']
+      );
+      testUser = testUserResult.rows[0];
+      console.log('Created test user:', testUser.username);
+    } else {
+      testUser = testUserResult.rows[0];
+      console.log('Using existing test user:', testUser.username);
+    }
+
+    // Create a simple test token (NOT for production!)
+    const testToken = Buffer.from(JSON.stringify({
+      sub: testUser.cognito_sub,
+      username: testUser.username,
+      email: testUser.email,
+      role: testUser.role,
+      exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour expiry
+    })).toString('base64');
+
+    res.json({
+      success: true,
+      message: 'Test login successful',
+      testToken: testToken,
+      user: {
+        id: testUser.id,
+        username: testUser.username,
+        email: testUser.email,
+        role: testUser.role
+      }
+    });
+
+  } catch (error) {
+    console.error('Test login error:', error);
+    res.status(500).json({ error: 'Test login failed', details: error.message });
+  }
+});
+
+// Health check endpoint that shows test status
+app.get(`${API_BASE}/test-status`, (req, res) => {
+  res.json({
+    message: 'Test endpoints active',
+    endpoints: {
+      testLogin: 'POST /api/v1/auth/test-login',
+      usage: 'Get test token, then use as: Authorization: Bearer <testToken>'
+    },
+    testUser: {
+      username: 'testuser',
+      role: 'admin',
+      email: 'test@test.com'
+    }
+  });
+});
+
+// Modified authentication middleware that accepts test tokens
+const authenticateTokenWithTest = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -233,66 +307,57 @@ const authenticateToken = async (req, res, next) => {
     return res.status(401).json({ 
       error: 'Access token required', 
       code: 'NO_AUTH',
-      message: 'Please include Authorization: Bearer <idToken> header'
+      message: 'Please include Authorization: Bearer <token> header'
     });
   }
 
-  try {
-    // Verify the JWT using Cognito's public keys
-    const verifiedToken = await new Promise((resolve, reject) => {
-      jwt.verify(token, getKey, {
-        algorithms: ['RS256'],
-        issuer: `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`,
-        audience: COGNITO_CLIENT_ID
-      }, (err, decoded) => {
-        if (err) reject(err);
-        else resolve(decoded);
+  // Check if it's a test token (base64 encoded, shorter than JWT)
+  if (token.length < 200 && !token.includes('.')) {
+    try {
+      console.log('Using TEST TOKEN for authentication');
+      const decoded = JSON.parse(Buffer.from(token, 'base64').toString());
+      
+      // Check expiry
+      if (decoded.exp < Math.floor(Date.now() / 1000)) {
+        return res.status(403).json({ 
+          error: 'Test token expired', 
+          code: 'TOKEN_EXPIRED'
+        });
+      }
+
+      // Get user from database
+      const result = await pool.query(
+        'SELECT * FROM users WHERE cognito_sub = $1',
+        [decoded.sub]
+      );
+      
+      if (result.rows.length === 0) {
+        return res.status(403).json({ 
+          error: 'Test user not found', 
+          code: 'USER_NOT_FOUND'
+        });
+      }
+
+      req.user = result.rows[0];
+      console.log(`Test auth successful for user: ${req.user.username} (${req.user.role})`);
+      return next();
+
+    } catch (error) {
+      console.error('Test token verification failed:', error);
+      return res.status(403).json({ 
+        error: 'Invalid test token', 
+        code: 'INVALID_TEST_TOKEN'
       });
-    });
-
-    // Check token use - must be 'id'
-    if (verifiedToken.token_use !== 'id') {
-      throw new Error('Token must be an ID token, not an access token');
     }
-
-    // Extract user information
-    const cognitoSub = verifiedToken.sub;
-    const username = verifiedToken['cognito:username'] || verifiedToken.preferred_username;
-    const email = verifiedToken.email;
-
-    // Check if user exists in database
-    let result = await pool.query(
-      'SELECT * FROM users WHERE cognito_sub = $1',
-      [cognitoSub]
-    );
-    
-    let user;
-    if (result.rows.length === 0) {
-      // Create user in database
-      const createResult = await pool.query(
-        `INSERT INTO users (cognito_sub, username, email, email_verified, role) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING *`,
-        [cognitoSub, username, email, verifiedToken.email_verified || false, 'user']
-      );
-      user = createResult.rows[0];
-    } else {
-      user = result.rows[0];
-      await pool.query(
-        'UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE id = $1',
-        [user.id]
-      );
-    }
-    
-    req.user = user;
-    next();
-  } catch (error) {
-    return res.status(403).json({ 
-      error: 'Invalid or expired token', 
-      code: 'INVALID_TOKEN',
-      details: error.message
-    });
   }
+
+  // Original Cognito JWT verification would go here
+  // For now, reject non-test tokens with helpful message
+  return res.status(403).json({ 
+    error: 'Use test token for now - Cognito auth disabled for testing', 
+    code: 'USE_TEST_TOKEN',
+    hint: 'Call POST /api/v1/auth/test-login to get a test token'
+  });
 };
 
 const requireAdmin = (req, res, next) => {
@@ -332,6 +397,7 @@ app.get(`${API_BASE}/health`, async (req, res) => {
       timestamp: new Date().toISOString(),
       version: API_VERSION,
       uptime: process.uptime(),
+      testMode: true,
       services: {
         database: 'connected',
         s3: 'connected',
@@ -353,231 +419,8 @@ app.get(`${API_BASE}/health`, async (req, res) => {
   }
 });
 
-// COGNITO AUTHENTICATION ENDPOINTS
-
-// SIGNUP ENDPOINT
-app.post(`${API_BASE}/auth/signup`, authLimiter, async (req, res) => {
-  const { username, password, email } = req.body;
-
-  if (!username || !password || !email) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['username', 'password', 'email']
-    });
-  }
-
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-  if (!passwordRegex.test(password)) {
-    return res.status(400).json({
-      error: 'Password does not meet requirements',
-      requirements: 'Min 8 chars, uppercase, lowercase, number, special char'
-    });
-  }
-
-  try {
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || '';
-    const secretHash = createSecretHash(COGNITO_CLIENT_ID, clientSecret, username);
-
-    const signUpParams = {
-      ClientId: COGNITO_CLIENT_ID,
-      Username: username,
-      Password: password,
-      UserAttributes: [
-        { Name: "email", Value: email }
-      ]
-    };
-
-    if (secretHash) {
-      signUpParams.SecretHash = secretHash;
-    }
-
-    const command = new Cognito.SignUpCommand(signUpParams);
-    const response = await cognitoClient.send(command);
-
-    res.status(201).json({
-      success: true,
-      message: 'User created successfully. Check email for confirmation code.',
-      username: username,
-      userSub: response.UserSub,
-      confirmationRequired: !response.UserConfirmed
-    });
-
-  } catch (error) {
-    if (error.name === 'UsernameExistsException') {
-      return res.status(409).json({ error: 'Username already exists' });
-    } else if (error.name === 'InvalidPasswordException') {
-      return res.status(400).json({ error: 'Password does not meet requirements' });
-    }
-    res.status(500).json({ error: 'Failed to create user', details: error.message });
-  }
-});
-
-// CONFIRM SIGNUP ENDPOINT
-app.post(`${API_BASE}/auth/confirm`, authLimiter, async (req, res) => {
-  const { username, confirmationCode } = req.body;
-
-  if (!username || !confirmationCode) {
-    return res.status(400).json({
-      error: 'Missing required fields',
-      required: ['username', 'confirmationCode']
-    });
-  }
-
-  try {
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || '';
-    const secretHash = createSecretHash(COGNITO_CLIENT_ID, clientSecret, username);
-
-    const confirmParams = {
-      ClientId: COGNITO_CLIENT_ID,
-      Username: username,
-      ConfirmationCode: confirmationCode
-    };
-
-    if (secretHash) {
-      confirmParams.SecretHash = secretHash;
-    }
-
-    const command = new Cognito.ConfirmSignUpCommand(confirmParams);
-    await cognitoClient.send(command);
-
-    res.json({
-      success: true,
-      message: 'Email confirmed successfully. You can now login.',
-      username: username
-    });
-
-  } catch (error) {
-    if (error.name === 'CodeMismatchException') {
-      return res.status(400).json({ error: 'Invalid confirmation code' });
-    } else if (error.name === 'ExpiredCodeException') {
-      return res.status(400).json({ error: 'Confirmation code expired' });
-    }
-    res.status(500).json({ error: 'Failed to confirm user', details: error.message });
-  }
-});
-
-// LOGIN ENDPOINT
-app.post(`${API_BASE}/auth/login`, authLimiter, async (req, res) => {
-  const { username, password } = req.body;
-
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password required' });
-  }
-
-  try {
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || '';
-    const secretHash = createSecretHash(COGNITO_CLIENT_ID, clientSecret, username);
-
-    const authParams = {
-      USERNAME: username,
-      PASSWORD: password
-    };
-
-    if (secretHash) {
-      authParams.SECRET_HASH = secretHash;
-    }
-
-    const command = new Cognito.InitiateAuthCommand({
-      AuthFlow: Cognito.AuthFlowType.USER_PASSWORD_AUTH,
-      AuthParameters: authParams,
-      ClientId: COGNITO_CLIENT_ID
-    });
-
-    const response = await cognitoClient.send(command);
-
-    const idToken = response.AuthenticationResult.IdToken;
-    const accessToken = response.AuthenticationResult.AccessToken;
-    const refreshToken = response.AuthenticationResult.RefreshToken;
-
-    // Verify user exists in database or create them
-    const decodedIdToken = jwt.decode(idToken);
-    const cognitoSub = decodedIdToken.sub;
-    const email = decodedIdToken.email;
-
-    let userResult = await pool.query(
-      'SELECT * FROM users WHERE cognito_sub = $1',
-      [cognitoSub]
-    );
-
-    if (userResult.rows.length === 0) {
-      userResult = await pool.query(
-        `INSERT INTO users (cognito_sub, username, email, email_verified, role) 
-         VALUES ($1, $2, $3, $4, $5) 
-         RETURNING *`,
-        [cognitoSub, username, email, decodedIdToken.email_verified || false, 'user']
-      );
-    } else {
-      await pool.query(
-        'UPDATE users SET last_login = CURRENT_TIMESTAMP, login_count = login_count + 1 WHERE cognito_sub = $1',
-        [cognitoSub]
-      );
-    }
-
-    const user = userResult.rows[0];
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      tokens: {
-        idToken: idToken,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-        expiresIn: response.AuthenticationResult.ExpiresIn
-      },
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      }
-    });
-
-  } catch (error) {
-    if (error.name === 'NotAuthorizedException') {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    } else if (error.name === 'UserNotConfirmedException') {
-      return res.status(403).json({ error: 'User email not confirmed' });
-    }
-    res.status(500).json({ error: 'Authentication failed', details: error.message });
-  }
-});
-
-// RESEND CONFIRMATION CODE
-app.post(`${API_BASE}/auth/resend-code`, authLimiter, async (req, res) => {
-  const { username } = req.body;
-
-  if (!username) {
-    return res.status(400).json({ error: 'Username required' });
-  }
-
-  try {
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || '';
-    const secretHash = createSecretHash(COGNITO_CLIENT_ID, clientSecret, username);
-
-    const resendParams = {
-      ClientId: COGNITO_CLIENT_ID,
-      Username: username
-    };
-
-    if (secretHash) {
-      resendParams.SecretHash = secretHash;
-    }
-
-    const command = new Cognito.ResendConfirmationCodeCommand(resendParams);
-    await cognitoClient.send(command);
-
-    res.json({
-      success: true,
-      message: 'Confirmation code resent to your email'
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to resend code', details: error.message });
-  }
-});
-
-// GET CURRENT USER
-app.get(`${API_BASE}/auth/me`, authenticateToken, (req, res) => {
+// GET CURRENT USER (works with test tokens)
+app.get(`${API_BASE}/auth/me`, authenticateTokenWithTest, (req, res) => {
   res.json({
     success: true,
     user: {
@@ -589,12 +432,12 @@ app.get(`${API_BASE}/auth/me`, authenticateToken, (req, res) => {
       lastLogin: req.user.last_login,
       loginCount: req.user.login_count
     },
-    cognito_integration: 'server_side_verification'
+    testMode: true
   });
 });
 
 // VIDEO ENDPOINTS
-app.get(`${API_BASE}/videos`, authenticateToken, async (req, res) => {
+app.get(`${API_BASE}/videos`, authenticateTokenWithTest, async (req, res) => {
   try {
     const { page, limit, offset } = getPaginationData(req);
     
@@ -643,7 +486,7 @@ app.get(`${API_BASE}/videos`, authenticateToken, async (req, res) => {
   }
 });
 
-app.post(`${API_BASE}/videos/upload`, authenticateToken, uploadLimiter, upload.single('video'), async (req, res) => {
+app.post(`${API_BASE}/videos/upload`, authenticateTokenWithTest, uploadLimiter, upload.single('video'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 
@@ -734,7 +577,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateToken, uploadLimiter, upload.s
 });
 
 // ANALYTICS ENDPOINT
-app.get(`${API_BASE}/analytics`, authenticateToken, async (req, res) => {
+app.get(`${API_BASE}/analytics`, authenticateTokenWithTest, async (req, res) => {
   try {
     if (req.user.role === 'admin') {
       const stats = await pool.query(`
@@ -784,7 +627,7 @@ app.get(`${API_BASE}/analytics`, authenticateToken, async (req, res) => {
 });
 
 // CPU LOAD TEST
-app.post(`${API_BASE}/load-test`, authenticateToken, requireAdmin, (req, res) => {
+app.post(`${API_BASE}/load-test`, authenticateTokenWithTest, requireAdmin, (req, res) => {
   const { duration = 300, cores = 2 } = req.body;
   
   if (duration > 600) {
@@ -883,9 +726,10 @@ const startServer = async () => {
     await initializeDatabase();
     
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`�� MPEG Video Processing API v${API_VERSION} running on port ${PORT}`);
-      console.log(`�� Health Check: http://localhost:${PORT}${API_BASE}/health`);
-      console.log(`�� Cognito Integration: ACTIVE`);
+      console.log(`MPEG Video Processing API v${API_VERSION} running on port ${PORT}`);
+      console.log(`Health Check: http://localhost:${PORT}${API_BASE}/health`);
+      console.log(`TEST MODE ENABLED - Use /api/v1/auth/test-login for authentication bypass`);
+      console.log(`Cognito Integration: BYPASSED FOR TESTING`);
       console.log(`   - User Pool: ${COGNITO_USER_POOL_ID}`);
       console.log(`   - Client ID: ${COGNITO_CLIENT_ID}`);
     });
