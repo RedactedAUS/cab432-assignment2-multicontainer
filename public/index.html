@@ -1518,4 +1518,53 @@
             detailsDiv.innerHTML = `
                 <strong>Load Test ${completedText}</strong><br>
                 Duration: ${Math.floor(elapsed / 1000)}s<br>
-                Status: ${elapsed >= 5 * 60 * 1000 ? '✅ 5-minute target achieved' : '⏹️ Stopped early'}<br
+                Status: ${elapsed >= 5 * 60 * 1000 ? '✅ 5-minute target achieved' : '⏹️ Stopped early'}<br>
+                <strong>Final Results:</strong> Load test completed
+            `;
+            
+            showNotification(`Load test ${completedText.toLowerCase()}! Duration: ${Math.floor(elapsed / 1000)}s`, elapsed >= 5 * 60 * 1000 ? 'success' : 'warning');
+        }
+
+        function updateCPUDisplay(usage) {
+            const display = document.getElementById('cpu-display');
+            const status = document.getElementById('cpu-status');
+            
+            display.textContent = `${usage.toFixed(1)}%`;
+            
+            if (usage >= 80) {
+                display.className = 'cpu-display cpu-high';
+                status.textContent = 'High CPU usage - load test active';
+            } else if (usage >= 50) {
+                display.className = 'cpu-display cpu-medium';
+                status.textContent = 'Moderate CPU usage';
+            } else {
+                display.className = 'cpu-display cpu-low';
+                status.textContent = 'System idle';
+            }
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => document.body.removeChild(notification), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
