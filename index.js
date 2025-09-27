@@ -358,6 +358,25 @@ const DynamoDBSessionManager = {
     } catch (error) {
       console.error('❌ Error deleting session from DynamoDB:', error);
     }
+  },
+
+  async getUserSessions(userId) {
+    try {
+      const params = {
+        TableName: this.tableName,
+        FilterExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':userId': userId
+        }
+      };
+      
+      const result = await dynamoDB.scan(params).promise();
+      return result.Items || [];
+      
+    } catch (error) {
+      console.error('❌ Error getting user sessions from DynamoDB:', error);
+      return [];
+    }
   }
 };
 
@@ -483,6 +502,9 @@ const authenticateTest = async (req, res, next) => {
     code: 'INVALID_TOKEN'
   });
 };
+
+// Configure upload middleware EARLY - FIXED PLACEMENT
+let upload;
 
 // ENHANCED HEALTH CHECK
 app.get(`${API_BASE}/health`, async (req, res) => {
@@ -1054,9 +1076,6 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
   }
 });
 
-// Configure upload middleware
-let upload;
-
 // VIDEO UPLOAD with cache invalidation
 app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res) => {
   console.log(`🎬 Upload request from user ${req.user.username} (ID: ${req.user.id})`);
@@ -1610,11 +1629,11 @@ app.get(`${API_BASE}/jobs`, authenticateTest, async (req, res) => {
     let params = [req.user.id, req.user.role === 'admin'];
     
     if (status) {
-      query += ` AND pj.status = $${params.length + 1}`;
+      query += ` AND pj.status = ${params.length + 1}`;
       params.push(status);
     }
     
-    query += ` ORDER BY pj.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    query += ` ORDER BY pj.created_at DESC LIMIT ${params.length + 1} OFFSET ${params.length + 2}`;
     params.push(parseInt(limit), parseInt(offset));
     
     const result = await pool.query(query, params);
@@ -2034,7 +2053,7 @@ const startServer = async () => {
     await initializeDatabase();
     await initializeRedis();
     
-    // Configure upload middleware AFTER cloud services but BEFORE server starts
+    // Configure upload middleware AFTER cloud services but BEFORE server starts - FIXED PLACEMENT
     upload = multer({
       storage: multer.memoryStorage(),
       limits: { fileSize: 500 * 1024 * 1024, files: 5 },
