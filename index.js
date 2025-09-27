@@ -1455,11 +1455,11 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       console.log(`📥 Input: ${video.s3_key}`);
       console.log(`📤 Output: ${outputKey}`);
 
-      // Quality settings
+      // Quality settings - FIXED: Use 'x' instead of ':' for size format
       const qualitySettings = {
-        low: { videoBitrate: '500k', audioBitrate: '64k', scale: '854:480' },
-        medium: { videoBitrate: '1500k', audioBitrate: '128k', scale: '1280:720' },
-        high: { videoBitrate: '3000k', audioBitrate: '192k', scale: '1920:1080' }
+        low: { videoBitrate: '500k', audioBitrate: '64k', scale: '854x480' },
+        medium: { videoBitrate: '1500k', audioBitrate: '128k', scale: '1280x720' },
+        high: { videoBitrate: '3000k', audioBitrate: '192k', scale: '1920x1080' }
       };
 
       const settings = qualitySettings[quality] || qualitySettings.medium;
