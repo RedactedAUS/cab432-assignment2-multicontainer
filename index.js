@@ -9,7 +9,7 @@ const ffmpeg = require('fluent-ffmpeg');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 const rateLimit = require('express-rate-limit');
 const AWS = require('aws-sdk');
-const multerS3 = require('multer-s3');
+// const multerS3 = require('multer-s3'); // REMOVED - causing AWS SDK compatibility issues
 const { Pool } = require('pg');
 const crypto = require("crypto");
 const Redis = require('redis');
@@ -304,7 +304,7 @@ const DynamoDBSessionManager = {
       };
       
       await dynamoDB.put(params).promise();
-      console.log(`📝 Session created in DynamoDB: ${sessionId}`);
+      console.log(`🔐 Session created in DynamoDB: ${sessionId}`);
       return sessionId;
       
     } catch (error) {
@@ -468,9 +468,6 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - ID: ${req.requestId}`);
   next();
 });
-
-// S3 Upload Configuration
-let upload;
 
 // Authentication middleware
 const authenticateTest = async (req, res, next) => {
@@ -774,7 +771,7 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
   }
 });
 
-// VIDEO UPLOAD with cache invalidation
+// VIDEO UPLOAD with cache invalidation - FIXED VERSION
 app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res) => {
   console.log(`🎬 Upload request from user ${req.user.username} (ID: ${req.user.id})`);
   
@@ -807,12 +804,46 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
     const { tags, description } = req.body;
     
     try {
-      console.log('📁 File successfully uploaded to S3:', {
-        key: req.file.key,
-        bucket: req.file.bucket,
+      // FIXED: Generate S3 key manually (replacing multer-s3 functionality)
+      const userId = req.user.id;
+      const timestamp = Date.now();
+      const randomId = crypto.randomUUID().substr(0, 8);
+      const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const s3Key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
+
+      console.log(`🔑 Generated S3 key: ${s3Key}`);
+
+      // FIXED: Direct S3 upload using memory buffer
+      const uploadParams = {
+        Bucket: config.s3BucketName,
+        Key: s3Key,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+        ServerSideEncryption: 'AES256',
+        Metadata: {
+          originalName: req.file.originalname,
+          uploadedBy: req.user.id.toString(),
+          uploadTime: new Date().toISOString(),
+          fieldName: req.file.fieldname
+        }
+      };
+
+      console.log('☁️ Starting direct S3 upload...');
+      const s3Result = await s3.upload(uploadParams).promise();
+      
+      console.log('✅ File successfully uploaded to S3:', {
+        key: s3Key,
+        bucket: config.s3BucketName,
         size: req.file.size,
-        location: req.file.location
+        location: s3Result.Location,
+        etag: s3Result.ETag
       });
+
+      // Create a file object that mimics multer-s3 structure for compatibility
+      req.file.key = s3Key;
+      req.file.bucket = config.s3BucketName;
+      req.file.location = s3Result.Location;
+      req.file.etag = s3Result.ETag;
       
       // Use pre-signed URL for FFprobe
       const signedUrl = s3.getSignedUrl('getObject', {
@@ -939,10 +970,10 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
       });
 
     } catch (uploadError) {
-      console.error('❌ Upload processing error:', uploadError);
-      res.status(500).json({ 
-        error: 'Upload processing failed', 
-        code: 'PROCESSING_ERROR',
+      console.error('❌ S3 upload failed:', uploadError);
+      return res.status(500).json({ 
+        error: 'S3 upload failed', 
+        code: 'S3_UPLOAD_ERROR',
         details: uploadError.message 
       });
     }
@@ -1104,13 +1135,6 @@ app.get(`${API_BASE}/config`, authenticateTest, (req, res) => {
     }
   });
 });
-
-// Serve static files (HTML frontend)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-// Additional endpoints to add to index.js
-// Insert these endpoints after the existing ones, before the error handling middleware
 
 // DELETE VIDEO endpoint with S3 cleanup
 app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
@@ -1440,6 +1464,12 @@ app.get(`${API_BASE}/status`, async (req, res) => {
 
   res.json(status);
 });
+
+// Serve static files (HTML frontend)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error(`❌ Unhandled error [${req.requestId}]:`, error);
@@ -1497,40 +1527,16 @@ const startServer = async () => {
     await initializeCloudServices();
     await initializeDatabase();
     await initializeRedis();
-     upload = multer({
-      storage: multerS3({
-        s3: s3,
-        bucket: config.s3BucketName,  // ✅ Now this is properly loaded from Parameter Store
-        acl: 'private',
-        key: function (req, file, cb) {
-          const userId = req.user?.id || 'anonymous';
-          const timestamp = Date.now();
-          const randomId = crypto.randomUUID().substr(0, 8);
-          const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-          const key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
-          console.log(`🔑 Generating S3 key: ${key}`);
-          cb(null, key);
-        },
-        contentType: multerS3.AUTO_CONTENT_TYPE,
-        metadata: function (req, file, cb) {
-          cb(null, {
-            fieldName: file.fieldname,
-            originalName: file.originalname,
-            uploadedBy: req.user?.id || 'anonymous',
-            uploadTime: new Date().toISOString(),
-            contentType: file.mimetype
-          });
-        },
-        serverSideEncryption: 'AES256'
-      }),
-      limits: { 
-        fileSize: 500 * 1024 * 1024, // 500MB
-        files: 5
-      },
+    
+    // CRITICAL: Configure upload middleware AFTER cloud services but BEFORE server starts
+    upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 500 * 1024 * 1024, files: 5 },
       fileFilter: (req, file, cb) => {
         const allowedTypes = [
           'video/mp4', 'video/avi', 'video/mov', 'video/mkv', 'video/wmv',
-          'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime', 'application/octet-stream'
+          'video/webm', 'video/flv', 'video/3gp', 'video/m4v', 'video/quicktime', 
+          'application/octet-stream'
         ];
         
         if (allowedTypes.includes(file.mimetype)) {
@@ -1540,6 +1546,9 @@ const startServer = async () => {
         }
       }
     });
+    
+    console.log('✅ Upload middleware configured with memory storage');
+    
     console.log('\n✅ CORE CRITERIA STATUS:');
     console.log('   ✅ Statelessness: No local file storage');
     console.log('   ✅ Data Persistence 1: PostgreSQL/RDS for metadata'); 
@@ -1561,7 +1570,7 @@ const startServer = async () => {
       console.log(`💚 Health Check: http://localhost:${PORT}${API_BASE}/health`);
       console.log(`🔧 Configuration: http://localhost:${PORT}${API_BASE}/config`);
       console.log(`📊 Analytics: http://localhost:${PORT}${API_BASE}/analytics`);
-      console.log(`📝 Sessions: http://localhost:${PORT}${API_BASE}/sessions`);
+      console.log(`🔐 Sessions: http://localhost:${PORT}${API_BASE}/sessions`);
       console.log('\n🏆 ASSESSMENT 2 READY - All Additional Criteria Implemented!');
       console.log('📋 Total Available Marks: 15+ additional criteria marks');
     });
