@@ -459,9 +459,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Standard middleware
+// Standard middleware - ENSURE static files are served BEFORE any API routes
 app.use(express.json({ limit: '50mb' }));
-app.use(express.static('public'));
+app.use(express.static('public')); // This MUST be before API routes to serve /js/ files
 app.use(generalLimiter);
 
 // Request tracking middleware
@@ -505,6 +505,19 @@ const authenticateTest = async (req, res, next) => {
 
 // Configure upload middleware EARLY - FIXED PLACEMENT
 let upload;
+
+// ==============================
+// PUBLIC STATIC ROUTES (No authentication required)
+// ==============================
+
+// Serve main HTML page at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ==============================
+// PUBLIC API ENDPOINTS (No authentication required)
+// ==============================
 
 // ENHANCED HEALTH CHECK
 app.get(`${API_BASE}/health`, async (req, res) => {
@@ -1990,10 +2003,9 @@ app.get(`${API_BASE}/status`, async (req, res) => {
   res.json(status);
 });
 
-// Serve static files (HTML frontend)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// ==============================
+// ERROR HANDLING AND FINAL ROUTES
+// ==============================
 
 // Error handling middleware
 app.use((error, req, res, next) => {
@@ -2015,13 +2027,24 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler for API routes only (not static files)
+app.use('/api/*', (req, res) => {
   res.status(404).json({
     error: 'API endpoint not found',
     code: 'ENDPOINT_NOT_FOUND',
     path: req.originalUrl,
     method: req.method
+  });
+});
+
+// Final catch-all 404 for non-API routes
+app.use('*', (req, res) => {
+  res.status(404).json({
+    error: 'Resource not found',
+    code: 'NOT_FOUND',
+    path: req.originalUrl,
+    method: req.method,
+    note: 'Static files should be served from /public directory'
   });
 });
 
