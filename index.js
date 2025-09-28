@@ -1468,30 +1468,39 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       const outputKey = `processed/${req.user.id}/${timestamp}-${format}-${quality}-${path.basename(video.original_filename, path.extname(video.original_filename))}.${format}`;
 
       // Generate pre-signed URLs for input and output
-      const inputUrl = s3.getSignedUrl('getObject', {
-        Bucket: video.s3_bucket,
-        Key: video.s3_key,
-        Expires: 3600
-      });
+  console.log('📥 Downloading S3 file for local processing...');
 
-      console.log(`🔄 Starting FFmpeg transcoding process...`);
-      console.log(`📥 Input: ${video.s3_key}`);
-      console.log(`📤 Output: ${outputKey}`);
+// Download file from S3 using AWS SDK instead of pre-signed URL
+const downloadParams = {
+  Bucket: video.s3_bucket,
+  Key: video.s3_key
+};
 
-      // Quality settings - FIXED: Use 'x' instead of ':' for size format
-      const qualitySettings = {
-        low: { videoBitrate: '500k', audioBitrate: '64k', scale: '854x480' },
-        medium: { videoBitrate: '1500k', audioBitrate: '128k', scale: '1280x720' },
-        high: { videoBitrate: '3000k', audioBitrate: '192k', scale: '1920x1080' }
-      };
+const s3Object = await s3.getObject(downloadParams).promise();
 
-      const settings = qualitySettings[quality] || qualitySettings.medium;
+// Create temp files for processing
+const inputTempFile = `/tmp/input-${Date.now()}${path.extname(video.original_filename)}`;
 
-      // Start transcoding process
-      startTime = Date.now();
-      
-      await new Promise((resolve, reject) => {
-        let command = ffmpeg(inputUrl)
+// Write S3 data to local temp file
+fs.writeFileSync(inputTempFile, s3Object.Body);
+
+console.log(`🔄 Starting FFmpeg transcoding process...`);
+console.log(`📥 Input: ${video.s3_key}`);
+console.log(`📤 Output: ${outputKey}`);
+
+// Quality settings - FIXED: Use 'x' instead of ':' for size format
+const qualitySettings = {
+  low: { videoBitrate: '500k', audioBitrate: '64k', scale: '854x480' },
+  medium: { videoBitrate: '1500k', audioBitrate: '128k', scale: '1280x720' },
+  high: { videoBitrate: '3000k', audioBitrate: '192k', scale: '1920x1080' }
+};
+
+const settings = qualitySettings[quality] || qualitySettings.medium;
+
+// Start transcoding process
+startTime = Date.now();
+await new Promise((resolve, reject) => {
+  let command = ffmpeg(inputTempFile)
           .format(format)
           .videoBitrate(settings.videoBitrate)
           .audioBitrate(settings.audioBitrate);
