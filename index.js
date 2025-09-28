@@ -264,8 +264,8 @@ const createDatabaseTables = async () => {
 
     // Create test user
     await pool.query(`
-      INSERT INTO users (username, email, role) 
-      VALUES ('testuser', 'test@test.com', 'admin') 
+      INSERT INTO users (cognito_sub, username, email, role)
+      VALUES ('test-cognito-sub-12345', 'testuser', 'test@test.com', 'admin')
       ON CONFLICT (username) DO NOTHING
     `);
 
