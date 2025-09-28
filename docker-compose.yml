@@ -1,28 +1,26 @@
 version: '3.8'
-
 services:
-  # PostgreSQL Database (First Data Persistence Service - Assessment 2)
-  postgres:
-    image: postgres:15-alpine
-    container_name: postgres-db-assessment2
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mpegapi
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d mpegapi"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Commented out local PostgreSQL since we're using RDS
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: postgres-db-assessment2
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: mpegapi
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - app-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres -d mpegapi"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
 
-  # Redis Cache (In-memory Caching - Additional Criteria 3 marks)
   redis:
     image: redis:7-alpine
     container_name: redis-cache-assessment2
@@ -37,9 +35,8 @@ services:
       timeout: 5s
       retries: 5
 
-  # Main Application (Stateless - Assessment 2 Core Criterion)
-app:
-    build: 
+  app:
+    build:
       context: .
       dockerfile: Dockerfile
     container_name: mpeg-api-assessment2
@@ -48,45 +45,30 @@ app:
     environment:
       - NODE_ENV=${NODE_ENV:-production}
       - PORT=3001
-      # AWS Configuration for S3 (Second Persistence Service)
       - AWS_REGION=${AWS_REGION:-ap-southeast-2}
       - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-cab432-n11538082-videos}
-      # Database Configuration (PostgreSQL RDS simulation)
-      - RDS_HOSTNAME=postgres
+      # Updated RDS configuration to use managed RDS instance
+      - RDS_HOSTNAME=database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com
       - RDS_PORT=5432
-      - RDS_USERNAME=postgres
-      - RDS_PASSWORD=password
-      - RDS_DB_NAME=mpegapi
-      # Redis Configuration
+      - RDS_USERNAME=s323
+      - RDS_PASSWORD=vNo7jHx2HU1q
+      - RDS_DB_NAME=cohort_2025
       - REDIS_URL=redis://redis:6379
-      # CORS Configuration
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
-      # Assessment 2 Specific
       - ASSESSMENT_MODE=assessment2
       - ENABLE_DEBUG_LOGGING=true
-      
-    # CRITICAL: NO VOLUME MOUNTS FOR STATELESSNESS
-    # All files stored in S3, metadata in PostgreSQL
-   restart: unless-stopped
+    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      # Removed postgres dependency since using RDS
       redis:
         condition: service_healthy
     networks:
       - app-network
-    healthcheck:
-      test: ["CMD", "node", "healthcheck.js"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  # NGINX Reverse Proxy (Production-like setup)
   nginx:
     image: nginx:alpine
     container_name: nginx-proxy-assessment2
@@ -95,13 +77,13 @@ app:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      app:
-        condition: service_healthy
+      - app
     restart: unless-stopped
     networks:
       - app-network
 
 volumes:
+  # Keep postgres_data volume in case you need to rollback
   postgres_data:
     driver: local
 
