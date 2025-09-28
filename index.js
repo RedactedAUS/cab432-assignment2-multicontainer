@@ -25,7 +25,16 @@ const STUDENT_ID = 'n11538082';
 
 // AWS Configuration
 const region = process.env.AWS_REGION || 'ap-southeast-2';
-AWS.config.update({ region: region });
+
+// Force credential refresh and explicit configuration
+AWS.config.update({ 
+  region: region,
+  credentials: new AWS.EC2MetadataCredentials({
+    httpOptions: { timeout: 5000 },
+    maxRetries: 10,
+    retryDelayOptions: { customBackoff: function(retryCount) { return Math.pow(2, retryCount) * 30; } }
+  })
+});
 
 const s3 = new AWS.S3({ region: region, signatureVersion: 'v4' });
 const ssm = new AWS.SSM({ region: region });
