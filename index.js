@@ -12,7 +12,7 @@ const AWS = require('aws-sdk');
 const { Pool } = require('pg');
 const crypto = require("crypto");
 const Redis = require('redis');
-const os = require('os'); // Added for CPU monitoring
+const os = require('os');
 
 // Configure FFmpeg
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
@@ -697,7 +697,7 @@ app.post(`${API_BASE}/load-test/start`, authenticateTest, async (req, res) => {
     // Start load test monitoring
     activeLoadTests.set(loadTestId, {
       startTime: Date.now(),
-      duration: duration * 1000, // Convert to milliseconds
+      duration: duration * 1000,
       concurrentJobs,
       jobsCreated: 0,
       cpuReadings: [],
@@ -733,7 +733,7 @@ app.post(`${API_BASE}/load-test/start`, authenticateTest, async (req, res) => {
           req.user.id,
           JSON.stringify({
             format: 'mp4',
-            quality: 'high', // Use high quality for maximum CPU load
+            quality: 'high', 
             loadTestId: loadTestId
           })
         ]
@@ -770,7 +770,7 @@ app.post(`${API_BASE}/load-test/start`, authenticateTest, async (req, res) => {
         console.error('Load test monitoring error:', error);
         clearInterval(monitoringInterval);
       }
-    }, 1000); // Monitor every second
+    }, 1000); 
     
     // Process the transcoding jobs (simplified for load testing)
     processLoadTestJobs(jobIds, loadTestId);
@@ -902,7 +902,7 @@ async function processLoadTestJobs(jobIds, loadTestId) {
         );
         
         // Simulate CPU-intensive work (in real implementation, this would be actual FFmpeg transcoding)
-        const duration = 30000 + Math.random() * 60000; // 30-90 seconds
+        const duration = 30000 + Math.random() * 60000;
         const cpuIntensiveWork = () => {
           const start = Date.now();
           while (Date.now() - start < 1000) {
@@ -926,7 +926,7 @@ async function processLoadTestJobs(jobIds, loadTestId) {
       } catch (error) {
         console.error(`Error processing load test job ${jobId}:`, error);
       }
-    }, Math.random() * 5000); // Stagger job starts
+    }, Math.random() * 5000); 
   }
 }
 
@@ -1541,7 +1541,7 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       // Upload transcoded file to S3
     // Start transcoding process
 const startTime = Date.now();
-const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`;  // Define tempFile FIRST
+const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`; 
 
 await new Promise((resolve, reject) => {
   let command = ffmpeg(inputUrl)
@@ -1819,7 +1819,6 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
       console.log(`✅ S3 object deleted: ${video.s3_key}`);
     } catch (s3Error) {
       console.error('⚠️ S3 deletion error:', s3Error);
-      // Continue with database deletion even if S3 fails
     }
 
     // Delete from database
@@ -2014,7 +2013,6 @@ app.get(`${API_BASE}/auth/me`, authenticateTest, async (req, res) => {
 
 // CONFIGURATION endpoint showing Parameter Store integration
 app.get(`${API_BASE}/config`, authenticateTest, (req, res) => {
-  // Only show non-sensitive configuration
   res.json({
     success: true,
     configuration: {
