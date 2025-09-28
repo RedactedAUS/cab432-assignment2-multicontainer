@@ -1498,55 +1498,56 @@ const qualitySettings = {
 const settings = qualitySettings[quality] || qualitySettings.medium;
 
 // Start transcoding process
-startTime = Date.now();
+const startTime = Date.now();
+const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`;
+
 await new Promise((resolve, reject) => {
   let command = ffmpeg(inputTempFile)
-          .format(format)
-          .videoBitrate(settings.videoBitrate)
-          .audioBitrate(settings.audioBitrate);
+    .format(format)
+    .videoBitrate(settings.videoBitrate)
+    .audioBitrate(settings.audioBitrate);
 
-        // Apply scaling if specified or use quality default
-        if (width && height) {
-          command = command.size(`${width}x${height}`);
-        } else {
-          command = command.size(settings.scale);
-        }
+  // Apply scaling if specified or use quality default
+  if (width && height) {
+    command = command.size(`${width}x${height}`);
+  } else {
+    command = command.size(settings.scale);
+  }
 
-        // Add codec settings based on format
-        if (format === 'mp4') {
-          command = command.videoCodec('libx264').audioCodec('aac');
-        } else if (format === 'webm') {
-          command = command.videoCodec('libvpx-vp9').audioCodec('libvorbis');
-        } else if (format === 'avi') {
-          command = command.videoCodec('libx264').audioCodec('mp3');
-        }
+  // Add codec settings based on format
+  if (format === 'mp4') {
+    command = command.videoCodec('libx264').audioCodec('aac');
+  } else if (format === 'webm') {
+    command = command.videoCodec('libvpx-vp9').audioCodec('libvorbis');
+  } else if (format === 'avi') {
+    command = command.videoCodec('libx264').audioCodec('mp3');
+  }
 
-        // Set up progress tracking
-        command.on('progress', async (progress) => {
-          const percentComplete = Math.round(progress.percent || 0);
-          console.log(`⏳ Transcoding progress: ${percentComplete}%`);
-          
-          // Update job progress in database
-          await pool.query(
-            'UPDATE processing_jobs SET progress = $1 WHERE id = $2',
-            [percentComplete, job.id]
-          );
-        });
+  // Set up progress tracking
+  command.on('progress', async (progress) => {
+    const percentComplete = Math.round(progress.percent || 0);
+    console.log(`⏳ Transcoding progress: ${percentComplete}%`);
+    
+    // Update job progress in database
+    await pool.query(
+      'UPDATE processing_jobs SET progress = $1 WHERE id = $2',
+      [percentComplete, job.id]
+    );
+  });
 
-        command.on('error', (error) => {
-          console.error(`❌ FFmpeg error:`, error);
-          reject(error);
-        });
+  command.on('error', (error) => {
+    console.error(`❌ FFmpeg error:`, error);
+    reject(error);
+  });
 
-        command.on('end', async () => {
-          console.log(`✅ Transcoding completed successfully`);
-          resolve();
-        });
+  command.on('end', async () => {
+    console.log(`✅ Transcoding completed successfully`);
+    resolve();
+  });
 
-        // Use a temporary local file for processing, then upload to S3
-        const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`;
-        command.save(tempFile);
-      });
+  // Save to temp file
+  command.save(tempFile);
+});
 
 // Read transcoded file and upload to S3
 let transcodedBuffer;
