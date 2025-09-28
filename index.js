@@ -157,6 +157,7 @@ const initializeDatabase = async () => {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
+      options: '-c search_path=s323'
     };
 
     pool = new Pool(dbConfig);
@@ -191,18 +192,19 @@ const initializeDatabase = async () => {
 const createDatabaseTables = async () => {
   try {
     // Create tables with proper constraints
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        username VARCHAR(255) UNIQUE NOT NULL,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password_hash VARCHAR(255),
-        role VARCHAR(50) DEFAULT 'user',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        last_login TIMESTAMP,
-        login_count INTEGER DEFAULT 0
-      )
-    `);
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    cognito_sub VARCHAR(255) UNIQUE,  -- Added missing column
+    username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255),
+    role VARCHAR(50) DEFAULT 'user',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP,
+    login_count INTEGER DEFAULT 0
+  )
+`);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS videos (
@@ -1241,7 +1243,18 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
           console.log(`✅ Video metadata saved to PostgreSQL with ID: ${video.id}`);
 
           // Invalidate cache after upload
-          console.log('🗑️ Invalidating video cache after upload');
+if (redisClient) {
+  try {
+    const keys = await redisClient.keys(`videos:${req.user.id}:*`);
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+    }
+    await redisClient.del(`analytics:${req.user.role}:${req.user.id}`);
+    console.log('✅ Cache invalidated after upload');
+  } catch (cacheError) {
+    console.error('Cache invalidation error:', cacheError);
+  }
+}
 
           // Generate pre-signed download URL
           const downloadUrl = s3.getSignedUrl('getObject', {
@@ -1526,34 +1539,97 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       });
 
       // Upload transcoded file to S3
-      const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`;
-      const transcodedBuffer = fs.readFileSync(tempFile);
-      
-      const uploadParams = {
-        Bucket: config.s3BucketName,
-        Key: outputKey,
-        Body: transcodedBuffer,
-        ContentType: `video/${format}`,
-        ServerSideEncryption: 'AES256',
-        Metadata: {
-          originalVideoId: videoId.toString(),
-          transcodeFormat: format,
-          transcodeQuality: quality,
-          processedBy: req.user.id.toString(),
-          processedAt: new Date().toISOString()
-        }
-      };
+    // Start transcoding process
+const startTime = Date.now();
+const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`;  // Define tempFile FIRST
 
-      console.log(`☁️ Uploading transcoded file to S3...`);
-      const s3Result = await s3.upload(uploadParams).promise();
+await new Promise((resolve, reject) => {
+  let command = ffmpeg(inputUrl)
+    .format(format)
+    .videoBitrate(settings.videoBitrate)
+    .audioBitrate(settings.audioBitrate);
 
-      // Clean up temp file
-      try {
-        fs.unlinkSync(tempFile);
-      } catch (cleanupError) {
-        console.warn(`⚠️ Could not clean up temp file: ${tempFile}`);
-      }
+  // Apply scaling if specified or use quality default
+  if (width && height) {
+    command = command.size(`${width}x${height}`);
+  } else {
+    command = command.size(settings.scale);
+  }
 
+  // Add codec settings based on format
+  if (format === 'mp4') {
+    command = command.videoCodec('libx264').audioCodec('aac');
+  } else if (format === 'webm') {
+    command = command.videoCodec('libvpx-vp9').audioCodec('libvorbis');
+  } else if (format === 'avi') {
+    command = command.videoCodec('libx264').audioCodec('mp3');
+  }
+
+  // Set up progress tracking
+  command.on('progress', async (progress) => {
+    const percentComplete = Math.round(progress.percent || 0);
+    console.log(`⏳ Transcoding progress: ${percentComplete}%`);
+    
+    // Update job progress in database
+    try {
+      await pool.query(
+        'UPDATE processing_jobs SET progress = $1 WHERE id = $2',
+        [percentComplete, job.id]
+      );
+    } catch (dbError) {
+      console.error('Progress update error:', dbError);
+    }
+  });
+
+  command.on('error', (error) => {
+    console.error(`❌ FFmpeg error:`, error);
+    reject(error);
+  });
+
+  command.on('end', () => {
+    console.log(`✅ Transcoding completed successfully`);
+    resolve();
+  });
+
+  // Save to temp file
+  command.save(tempFile);
+});
+
+// Read transcoded file and upload to S3
+let transcodedBuffer;
+try {
+  transcodedBuffer = fs.readFileSync(tempFile);
+} catch (fileError) {
+  throw new Error(`Failed to read transcoded file: ${fileError.message}`);
+}
+
+const uploadParams = {
+  Bucket: config.s3BucketName,
+  Key: outputKey,
+  Body: transcodedBuffer,
+  ContentType: `video/${format}`,
+  ServerSideEncryption: 'AES256',
+  Metadata: {
+    originalVideoId: videoId.toString(),
+    transcodeFormat: format,
+    transcodeQuality: quality,
+    processedBy: req.user.id.toString(),
+    processedAt: new Date().toISOString()
+  }
+};
+
+console.log(`☁️ Uploading transcoded file to S3...`);
+const s3Result = await s3.upload(uploadParams).promise();
+
+// Clean up temp file safely
+try {
+  if (fs.existsSync(tempFile)) {
+    fs.unlinkSync(tempFile);
+    console.log(`🗑️ Temp file cleaned up: ${tempFile}`);
+  }
+} catch (cleanupError) {
+  console.warn(`⚠️ Could not clean up temp file: ${tempFile}`, cleanupError);
+}
       // Update job with completion details
       const processingTime = (Date.now() - startTime) / 1000;
       await pool.query(
@@ -1748,22 +1824,32 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
 
     // Delete from database
     await pool.query('DELETE FROM videos WHERE id = $1', [videoId]);
-    
-    // Invalidate cache
-    const cachePattern = `videos:${req.user.id}:*`;
-    console.log('🗑️ Invalidating video cache after deletion');
 
-    res.json({
-      success: true,
-      message: 'Video deleted successfully from all cloud services',
-      videoId: videoId,
-      s3_cleanup: true,
-      assessment_2_compliance: {
-        statelessness: 'File removed from S3 cloud storage',
-        data_consistency: 'Metadata removed from PostgreSQL RDS',
-        cache_invalidation: 'ElastiCache Redis cache invalidated'
-      }
-    });
+// Invalidate cache after deletion
+if (redisClient) {
+  try {
+    const keys = await redisClient.keys(`videos:${req.user.id}:*`);
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+    }
+    await redisClient.del(`analytics:${req.user.role}:${req.user.id}`);
+    console.log('✅ Cache invalidated after deletion');
+  } catch (cacheError) {
+    console.error('Cache invalidation error:', cacheError);
+  }
+}
+
+res.json({
+  success: true,
+  message: 'Video deleted successfully from all cloud services',
+  videoId: videoId,
+  s3_cleanup: true,
+  assessment_2_compliance: {
+    statelessness: 'File removed from S3 cloud storage',
+    data_consistency: 'Metadata removed from PostgreSQL RDS',
+    cache_invalidation: 'ElastiCache Redis cache invalidated'
+  }
+});
 
   } catch (error) {
     console.error('❌ Error deleting video:', error);
