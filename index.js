@@ -1540,21 +1540,30 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
 
       // Upload transcoded file to S3
     // Start transcoding process
+console.log('📥 Downloading S3 file for local processing...');
+
+// Download file from S3 using AWS SDK instead of pre-signed URL
+const downloadParams = {
+  Bucket: video.s3_bucket,
+  Key: video.s3_key
+};
+
+const s3Object = await s3.getObject(downloadParams).promise();
+
+// Create input and output temp files
+const inputTempFile = `/tmp/input-${Date.now()}${path.extname(video.original_filename)}`;
+const outputTempFile = `/tmp/output-${Date.now()}.${format}`;
+
+// Write S3 data to local temp file
+fs.writeFileSync(inputTempFile, s3Object.Body);
+
+console.log('🔄 Starting FFmpeg transcoding process...');
+
+// Start transcoding process
 const startTime = Date.now();
-const tempFile = `/tmp/${Date.now()}-${path.basename(outputKey)}`; 
 
 await new Promise((resolve, reject) => {
-  let command = ffmpeg(inputUrl)
-    .format(format)
-    .videoBitrate(settings.videoBitrate)
-    .audioBitrate(settings.audioBitrate);
-
-  // Apply scaling if specified or use quality default
-  if (width && height) {
-    command = command.size(`${width}x${height}`);
-  } else {
-    command = command.size(settings.scale);
-  }
+  let command = ffmpeg(inputTempFile)
 
   // Add codec settings based on format
   if (format === 'mp4') {
