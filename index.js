@@ -1487,7 +1487,7 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       const settings = qualitySettings[quality] || qualitySettings.medium;
 
       // Start transcoding process
-      const startTime = Date.now();
+      startTime = Date.now();
       
       await new Promise((resolve, reject) => {
         let command = ffmpeg(inputUrl)
