@@ -13,7 +13,7 @@ const { Pool } = require('pg');
 const crypto = require("crypto");
 const Redis = require('redis');
 const os = require('os');
-
+const { router: authRouter, authenticateCognito, requireAdmin } = require('./cognito-routes');
 // Configure FFmpeg
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
@@ -475,6 +475,9 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public')); // This MUST be before API routes to serve /js/ files
 app.use(generalLimiter);
+
+// Mount Cognito authentication routes
+app.use(`${API_BASE}`, authRouter);
 
 // Request tracking middleware
 app.use((req, res, next) => {
