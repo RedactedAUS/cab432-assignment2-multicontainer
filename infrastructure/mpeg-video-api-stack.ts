@@ -9,13 +9,14 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import { createCognitoResources } from './cognito-stack';
 
 export class MpegVideoApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     const studentId = 'n11538082';
-
+    const cognitoResources = createCognitoResources(this, studentId);
     // VPC for our resources
     const vpc = new ec2.Vpc(this, 'MpegApiVpc', {
       maxAzs: 2,
