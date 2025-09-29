@@ -16,7 +16,7 @@ export class MpegVideoApiStack extends cdk.Stack {
 
     const studentId = 'n11538082';
 
-    // VPC for our resources
+    // VPC for resources
     const vpc = new ec2.Vpc(this, 'MpegApiVpc', {
       maxAzs: 2,
       natGateways: 1,

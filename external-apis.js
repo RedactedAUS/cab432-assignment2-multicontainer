@@ -5,7 +5,7 @@ const axios = require('axios');
 
 class ExternalAPIService {
   constructor() {
-    this.timeout = 10000; // 10 second timeout
+    this.timeout = 10000; 
   }
 
   // EXTERNAL API 1: OMDB Movie Database API
@@ -16,7 +16,7 @@ class ExternalAPIService {
       const response = await axios.get('http://www.omdbapi.com/', {
         params: {
           t: title,
-          apikey: 'trilogy', // Demo key
+          apikey: 'trilogy', 
           plot: 'full'
         },
         timeout: this.timeout
@@ -56,7 +56,7 @@ class ExternalAPIService {
       
       const response = await axios.get('https://jsonplaceholder.typicode.com/comments', {
         params: {
-          postId: (videoId % 10) + 1 // Map video ID to post ID 1-10
+          postId: (videoId % 10) + 1 
         },
         timeout: this.timeout
       });
