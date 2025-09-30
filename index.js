@@ -177,11 +177,11 @@ const initializeDatabase = async () => {
         if (retries === 0) {
           console.log('⚠️ Database not available, continuing without database features');
           pool = null;
-          return; // Exit gracefully instead of throwing
+          return;
         }
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-    } // <- This closing brace was missing
+    }
 
     // Create tables
     await createDatabaseTables();
@@ -190,36 +190,33 @@ const initializeDatabase = async () => {
   } catch (error) {
     console.error('❌ Database initialization error:', error);
     console.log('⚠️ Database not available, continuing without database features');
-    pool = null; // Also change this to not throw
-  }
-};
-    // Create tables
-    await createDatabaseTables();
-    console.log('✅ Database initialized successfully');
-
-  } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    throw error;
+    pool = null;
   }
 };
 
 // Create database tables
 const createDatabaseTables = async () => {
   try {
+    // Check if pool exists before using it
+    if (!pool) {
+      console.log('⚠️ No database connection available, skipping table creation');
+      return;
+    }
+    
     // Create tables with proper constraints
-await pool.query(`
-  CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    cognito_sub VARCHAR(255) UNIQUE,  -- Added missing column
-    username VARCHAR(255) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255),
-    role VARCHAR(50) DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP,
-    login_count INTEGER DEFAULT 0
-  )
-`);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        cognito_sub VARCHAR(255) UNIQUE,
+        username VARCHAR(255) UNIQUE NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255),
+        role VARCHAR(50) DEFAULT 'user',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_login TIMESTAMP,
+        login_count INTEGER DEFAULT 0
+      )
+    `);.
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS videos (
