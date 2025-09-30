@@ -1021,19 +1021,38 @@
         }
 
         // Check for stored tokens on page load
-        async function checkStoredTokens() {
-            const testToken = localStorage.getItem('testToken');
-            const cognitoToken = localStorage.getItem('cognitoIdToken');
-            
-            if (cognitoToken) {
-                console.log('Found Cognito token, verifying...');
-                await verifyCognitoToken(cognitoToken);
-            } else if (testToken) {
-                console.log('Found test token, verifying...');
-                await verifyStoredToken(testToken, true);
-            }
-        }
-
+async function checkStoredTokens() {
+    // Check for OAuth callback tokens in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const idToken = urlParams.get('id_token');
+    const accessToken = urlParams.get('access_token');
+    const loginType = urlParams.get('login_type');
+    
+    if (idToken && accessToken) {
+        console.log('OAuth callback tokens found in URL');
+        localStorage.setItem('cognitoIdToken', idToken);
+        localStorage.setItem('cognitoAccessToken', accessToken);
+        
+        // Clean URL without reloading
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Verify the token and get user info
+        await verifyCognitoToken(idToken);
+        return;
+    }
+    
+    // Check for previously stored tokens
+    const testToken = localStorage.getItem('testToken');
+    const cognitoToken = localStorage.getItem('cognitoIdToken');
+    
+    if (cognitoToken) {
+        console.log('Found Cognito token, verifying...');
+        await verifyCognitoToken(cognitoToken);
+    } else if (testToken) {
+        console.log('Found test token, verifying...');
+        await verifyStoredToken(testToken, true);
+    }
+}
         // AUTH TAB SWITCHING
         function switchAuthTab(tabName) {
             document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));

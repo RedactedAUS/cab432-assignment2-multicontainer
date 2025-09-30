@@ -1,26 +1,6 @@
 version: '3.8'
-services:
-  # Commented out local PostgreSQL since we're using RDS
-  # postgres:
-  #   image: postgres:15-alpine
-  #   container_name: postgres-db-assessment2
-  #   environment:
-  #     POSTGRES_USER: postgres
-  #     POSTGRES_PASSWORD: password
-  #     POSTGRES_DB: mpegapi
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   networks:
-  #     - app-network
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "pg_isready -U postgres -d mpegapi"]
-  #     interval: 10s
-  #     timeout: 5s
-  #     retries: 5
 
+services:
   redis:
     image: redis:7-alpine
     container_name: redis-cache-assessment2
@@ -51,39 +31,25 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-cab432-n11538082-videos}
-      # Updated RDS configuration to use managed RDS instance
-      - RDS_HOSTNAME=database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com
+      - COGNITO_CLIENT_ID=1m661s6635scnkirlsjgl7hmb8
       - RDS_PORT=5432
       - RDS_USERNAME=s323
       - RDS_PASSWORD=vNo7jHx2HU1q
+      - RDS_HOSTNAME=database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com
       - RDS_DB_NAME=cohort_2025
       - REDIS_URL=redis://redis:6379
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - ASSESSMENT_MODE=assessment2
+      - STUDENT_ID=${STUDENT_ID}
       - ENABLE_DEBUG_LOGGING=true
     restart: unless-stopped
     depends_on:
-      # Removed postgres dependency since using RDS
       redis:
         condition: service_healthy
     networks:
       - app-network
 
-  nginx:
-    image: nginx:alpine
-    container_name: nginx-proxy-assessment2
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - app
-    restart: unless-stopped
-    networks:
-      - app-network
-
 volumes:
-  # Keep postgres_data volume in case you need to rollback
   postgres_data:
     driver: local
 

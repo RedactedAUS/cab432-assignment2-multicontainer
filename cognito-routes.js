@@ -147,7 +147,12 @@ router.post('/auth/login', async (req, res) => {
 // ============================================
 router.get('/auth/callback', async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, error, error_description } = req.query;
+
+    if (error) {
+      console.error('OAuth error:', error, error_description);
+      return res.redirect(`/?error=${error}&error_description=${error_description}`);
+    }
 
     if (!code) {
       return res.status(400).json({
@@ -156,15 +161,37 @@ router.get('/auth/callback', async (req, res) => {
       });
     }
 
-    // Exchange code for tokens (this would typically use Cognito token endpoint)
-    // For now, we'll redirect to the frontend with the code
-    // The frontend will handle the token exchange via Cognito Hosted UI
+    // Exchange authorization code for tokens
+    const tokenEndpoint = `https://${cognitoAuth.studentId}-video-api.auth.${cognitoAuth.region}.amazoncognito.com/oauth2/token`;
+    
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: cognitoAuth.clientId,
+      code: code,
+      redirect_uri: `https://${process.env.STUDENT_ID}-mpeg-video.cab432.com/api/v1/auth/callback`
+    });
 
-    res.redirect(`/?auth_code=${code}&login_type=federated`);
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.text();
+      console.error('Token exchange failed:', errorData);
+      return res.redirect(`/?error=token_exchange_failed&details=${encodeURIComponent(errorData)}`);
+    }
+
+    const tokens = await tokenResponse.json();
+    
+    // Verify the ID token
+    const verified = await cognitoAuth.verifyToken(tokens.id_token);
+    
+    if (!verified.valid) {
+      return res.redirect('/?error=invalid_token');
+    }
+
+    // Successful Google login - redirect to frontend with token
+    res.redirect(`/?id_token=${tokens.id_token}&access_token=${tokens.access_token}&login_type=google`);
 
   } catch (error) {
     console.error('Callback route error:', error);
-    res.redirect('/?error=auth_failed');
+    res.redirect(`/?error=auth_failed&message=${encodeURIComponent(error.message)}`);
   }
 });
 
@@ -444,7 +471,7 @@ router.get('/auth/config', (req, res) => {
     res.json({
       success: true,
       config: config,
-      googleLoginUrl: `${config.hostedUIUrl}/oauth2/authorize?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent('https://' + process.env.STUDENT_ID + '-mpeg-video.cab432.com/auth/callback')}`
+      googleLoginUrl: `${config.hostedUIUrl}/oauth2/authorize?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent('https://' + process.env.STUDENT_ID + '-mpeg-video.cab432.com/api/v1/auth/callback')}`
     });
 
   } catch (error) {
