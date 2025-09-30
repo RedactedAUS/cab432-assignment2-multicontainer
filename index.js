@@ -1038,6 +1038,38 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
       pool.query(baseQuery, [...params, parseInt(limit), offset]),
       pool.query(countQuery, params)
     ]);
+    app.get(`${API_BASE}/cache/test`, authenticateTest, async (req, res) => {
+  try {
+    const testKey = 'redis-connection-test';
+    const testData = { 
+      timestamp: new Date().toISOString(),
+      message: 'Redis cache is working',
+      cache_endpoint: 'clustercfg.n11538082-video-cache.km2jzi.apse2.cache.amazonaws.com:6379'
+    };
+    
+    // Test cache set operation
+    const setResult = await CacheManager.set(testKey, testData, 60);
+    
+    // Test cache get operation
+    const getData = await CacheManager.get(testKey);
+    
+    res.json({
+      success: true,
+      redis_connected: !!redisClient,
+      set_operation: setResult ? 'success' : 'failed',
+      get_operation: getData ? 'success' : 'failed',
+      cached_data: getData,
+      endpoint_used: 'ElastiCache Redis cluster'
+    });
+    
+  } catch (error) {
+    res.json({
+      success: false,
+      error: error.message,
+      redis_connected: false
+    });
+  }
+});
     
     const totalCount = parseInt(count.rows[0].count);
     const totalPages = Math.ceil(totalCount / limit);
