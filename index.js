@@ -149,10 +149,10 @@ const initializeDatabase = async () => {
     console.log('🗄️ Initializing PostgreSQL database...');
     
     const dbConfig = {
-      host: process.env.RDS_HOSTNAME || 'postgres',
+      host: process.env.RDS_HOSTNAME || 'localhost',
       port: process.env.RDS_PORT || 5432,
-      user: config.secrets.database.username,
-      password: config.secrets.database.password,
+      user: config.secrets.database?.username || 'postgres',
+      password: config.secrets.database?.password || 'password',
       database: process.env.RDS_DB_NAME || 'mpegapi',
       ssl: false,
       max: 20,
@@ -174,10 +174,13 @@ const initializeDatabase = async () => {
       } catch (error) {
         retries--;
         console.log(`⏳ Database connection failed, retrying... (${retries} attempts left)`);
-        if (retries === 0) throw error;
+        if (retries === 0) {
+          console.log('⚠️ Database not available, continuing without database features');
+          pool = null;
+          return; // Exit gracefully instead of throwing
+        }
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-    }
 
     // Create tables
     await createDatabaseTables();
