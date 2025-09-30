@@ -216,7 +216,7 @@ const createDatabaseTables = async () => {
         last_login TIMESTAMP,
         login_count INTEGER DEFAULT 0
       )
-    `);.
+    `);
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS videos (
