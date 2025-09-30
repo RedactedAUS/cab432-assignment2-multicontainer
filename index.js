@@ -181,7 +181,18 @@ const initializeDatabase = async () => {
         }
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
+    } // <- This closing brace was missing
 
+    // Create tables
+    await createDatabaseTables();
+    console.log('✅ Database initialized successfully');
+
+  } catch (error) {
+    console.error('❌ Database initialization error:', error);
+    console.log('⚠️ Database not available, continuing without database features');
+    pool = null; // Also change this to not throw
+  }
+};
     // Create tables
     await createDatabaseTables();
     console.log('✅ Database initialized successfully');
