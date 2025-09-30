@@ -18,7 +18,7 @@ const { router: authRouter, authenticateCognito, requireAdmin } = require('./cog
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
 
 const app = express();
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 const API_VERSION = 'v1';
 const API_BASE = `/api/${API_VERSION}`;
