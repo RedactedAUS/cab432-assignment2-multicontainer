@@ -531,7 +531,7 @@ async function authenticateCognito(req, res, next) {
     req.user = verified.user;
     req.user.accessToken = token;
 
-    console.log(`✅ Authenticated: ${req.user.username} (Groups: ${req.user.groups.join(', ') || 'none'})`);
+    console.log(`Authenticated: ${req.user.username} (Groups: ${req.user.groups.join(', ') || 'none'})`);
     
     next();
 

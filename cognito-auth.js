@@ -40,7 +40,7 @@ class CognitoAuthService {
       cacheMaxAge: 600000
     });
 
-    console.log('🔐 Cognito Auth Service initialized');
+    console.log(' Cognito Auth Service initialized');
     console.log(`   User Pool: ${this.userPoolId}`);
     console.log(`   Client ID: ${this.clientId}`);
     console.log(`   Region: ${this.region}`);
@@ -51,7 +51,7 @@ class CognitoAuthService {
   // ============================================
   async signUp(username, password, email, attributes = {}) {
     try {
-      console.log(`📝 Signing up new user: ${username}`);
+      console.log(`Signing up new user: ${username}`);
 
       const command = new SignUpCommand({
         ClientId: this.clientId,
@@ -68,9 +68,9 @@ class CognitoAuthService {
 
       const response = await this.cognitoClient.send(command);
       
-      console.log(`✅ User signup successful: ${username}`);
-      console.log(`   User Sub: ${response.UserSub}`);
-      console.log(`   Confirmation required: ${!response.UserConfirmed}`);
+      console.log(` User signup successful: ${username}`);
+      console.log(` User Sub: ${response.UserSub}`);
+      console.log(` Confirmation required: ${!response.UserConfirmed}`);
 
       return {
         success: true,
@@ -83,7 +83,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Signup error:', error.message);
+      console.error('Signup error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -93,7 +93,7 @@ class CognitoAuthService {
   // ============================================
   async confirmSignUp(username, confirmationCode) {
     try {
-      console.log(`✉️ Confirming user: ${username}`);
+      console.log(`Confirming user: ${username}`);
 
       const command = new ConfirmSignUpCommand({
         ClientId: this.clientId,
@@ -103,7 +103,7 @@ class CognitoAuthService {
 
       await this.cognitoClient.send(command);
       
-      console.log(`✅ User confirmed: ${username}`);
+      console.log(`User confirmed: ${username}`);
       
       return {
         success: true,
@@ -111,7 +111,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Confirmation error:', error.message);
+      console.error('Confirmation error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -121,7 +121,7 @@ class CognitoAuthService {
   // ============================================
   async login(username, password) {
     try {
-      console.log(`🔑 Authenticating user: ${username}`);
+      console.log(`Authenticating user: ${username}`);
 
       const command = new InitiateAuthCommand({
         ClientId: this.clientId,
@@ -136,7 +136,7 @@ class CognitoAuthService {
 
       // Check if MFA is required
       if (response.ChallengeName === 'SOFTWARE_TOKEN_MFA') {
-        console.log('🔐 MFA challenge required');
+        console.log('MFA challenge required');
         return {
           success: true,
           challengeName: response.ChallengeName,
@@ -148,7 +148,7 @@ class CognitoAuthService {
 
       // Check if new password required (first login)
       if (response.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-        console.log('🔄 New password required');
+        console.log('New password required');
         return {
           success: true,
           challengeName: response.ChallengeName,
@@ -161,7 +161,7 @@ class CognitoAuthService {
       const tokens = response.AuthenticationResult;
       const decodedToken = jwt.decode(tokens.IdToken);
       
-      console.log(`✅ Login successful: ${username}`);
+      console.log(`Login successful: ${username}`);
       console.log(`   User Groups: ${decodedToken['cognito:groups'] || 'none'}`);
 
       return {
@@ -181,7 +181,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Login error:', error.message);
+      console.error('Login error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -191,7 +191,7 @@ class CognitoAuthService {
   // ============================================
   async setupMFA(accessToken) {
     try {
-      console.log('🔐 Setting up MFA...');
+      console.log(' Setting up MFA...');
 
       const command = new AssociateSoftwareTokenCommand({
         AccessToken: accessToken
@@ -199,7 +199,7 @@ class CognitoAuthService {
 
       const response = await this.cognitoClient.send(command);
       
-      console.log('✅ MFA setup initiated');
+      console.log(' MFA setup initiated');
 
       return {
         success: true,
@@ -209,7 +209,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ MFA setup error:', error.message);
+      console.error('MFA setup error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -219,7 +219,7 @@ class CognitoAuthService {
   // ============================================
   async verifyMFASetup(accessToken, mfaCode) {
     try {
-      console.log('🔐 Verifying MFA setup...');
+      console.log(' Verifying MFA setup...');
 
       // Verify the token
       const verifyCommand = new VerifySoftwareTokenCommand({
@@ -241,7 +241,7 @@ class CognitoAuthService {
 
       await this.cognitoClient.send(preferenceCommand);
       
-      console.log('✅ MFA enabled successfully');
+      console.log(' MFA enabled successfully');
 
       return {
         success: true,
@@ -249,7 +249,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ MFA verification error:', error.message);
+      console.error('MFA verification error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -259,7 +259,7 @@ class CognitoAuthService {
   // ============================================
   async respondToMFAChallenge(username, mfaCode, session) {
     try {
-      console.log(`🔐 Verifying MFA code for: ${username}`);
+      console.log(` Verifying MFA code for: ${username}`);
 
       const command = new RespondToAuthChallengeCommand({
         ClientId: this.clientId,
@@ -275,7 +275,7 @@ class CognitoAuthService {
       const tokens = response.AuthenticationResult;
       const decodedToken = jwt.decode(tokens.IdToken);
       
-      console.log(`✅ MFA verification successful: ${username}`);
+      console.log(` MFA verification successful: ${username}`);
 
       return {
         success: true,
@@ -294,7 +294,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ MFA challenge error:', error.message);
+      console.error('MFA challenge error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -315,7 +315,7 @@ class CognitoAuthService {
         throw new Error('Invalid federated token');
       }
 
-      console.log(`✅ Federated login successful: ${verified.user.email}`);
+      console.log(` Federated login successful: ${verified.user.email}`);
       console.log(`   Provider: ${verified.user.identities?.[0]?.providerName || 'Google'}`);
 
       return {
@@ -325,7 +325,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Federated login error:', error.message);
+      console.error('Federated login error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -345,7 +345,7 @@ class CognitoAuthService {
 
       await this.cognitoClient.send(command);
       
-      console.log(`✅ User added to group: ${groupName}`);
+      console.log(` User added to group: ${groupName}`);
 
       return {
         success: true,
@@ -353,7 +353,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Add to group error:', error.message);
+      console.error('Add to group error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -370,7 +370,7 @@ class CognitoAuthService {
 
       await this.cognitoClient.send(command);
       
-      console.log(`✅ User removed from group: ${groupName}`);
+      console.log(` User removed from group: ${groupName}`);
 
       return {
         success: true,
@@ -378,7 +378,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Remove from group error:', error.message);
+      console.error('Remove from group error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -402,7 +402,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Get user groups error:', error.message);
+      console.error('Get user groups error:', error.message);
       throw this.handleCognitoError(error);
     }
   }
@@ -441,7 +441,7 @@ class CognitoAuthService {
       };
 
     } catch (error) {
-      console.error('❌ Token verification error:', error.message);
+      console.error('Token verification error:', error.message);
       return {
         valid: false,
         error: error.message
@@ -467,7 +467,7 @@ class CognitoAuthService {
 
   generateQRCodeUrl(secretCode) {
     const appName = 'MPEG-Video-API';
-    const username = 'user'; // This should be replaced with actual username
+    const username = 'user'; 
     const otpauthUrl = `otpauth://totp/${appName}:${username}?secret=${secretCode}&issuer=${appName}`;
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUrl)}`;
   }
