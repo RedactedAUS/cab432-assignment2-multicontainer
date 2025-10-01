@@ -1196,22 +1196,6 @@ async function checkStoredTokens() {
     }
 }
             
-            // CRITICAL: Must use /oauth2/authorize NOT /login
-            const loginUrl = `https://${cognitoDomain}/oauth2/authorize?` +
-                `identity_provider=Google&` +
-                `redirect_uri=${redirectUri}&` +
-                `response_type=code&` +
-                `client_id=${clientId}&` +
-                `scope=openid+email+profile`;
-            
-            console.log('Redirecting to Google login:', loginUrl);
-            window.location.href = loginUrl;
-        } catch (error) {
-            console.error('Google login error:', error);
-            showNotification('Failed to initiate Google login', 'error');
-        }
-    }
-
         // HANDLE SUCCESSFUL COGNITO LOGIN
         function handleCognitoSuccessfulLogin(data) {
             localStorage.setItem('cognitoIdToken', data.tokens.idToken);
