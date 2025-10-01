@@ -161,34 +161,32 @@ router.get('/auth/callback', async (req, res) => {
       });
     }
 
-    // Exchange authorization code for tokens
-const tokenEndpoint = `https://${cognitoAuth.studentId}-video-api.auth.${cognitoAuth.region}.amazoncognito.com/oauth2/token`;
+    // Build the correct token endpoint URL using the actual Cognito domain
+    const tokenEndpoint = `https://n11538082-video-api.auth.ap-southeast-2.amazoncognito.com/oauth2/token`;
+    
+    // Your actual deployed callback URL - must match EXACTLY what's in Cognito console
+    const redirectUri = `https://n11538082-mpeg-video.cab432.com/api/v1/auth/callback`;
 
-const params = new URLSearchParams({
-  grant_type: 'authorization_code',
-  client_id: cognitoAuth.clientId,
-  code: code,
-  redirect_uri: `https://${process.env.STUDENT_ID}-mpeg-video.cab432.com/api/v1/auth/callback`
-});
+    const params = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: '1m661s66355cnkirlsjgl7hmb8',
+      code: code,
+      redirect_uri: redirectUri
+    });
 
-console.log('Token exchange request:', {
-  endpoint: tokenEndpoint,
-  params: params.toString()
-});
+    console.log('Token exchange request:', {
+      endpoint: tokenEndpoint,
+      redirect_uri: redirectUri,
+      client_id: '1m661s66355cnkirlsjgl7hmb8'
+    });
 
-
-    // Add client secret for confidential client flow
-   // if (process.env.COGNITO_CLIENT_SECRET) {
-    //  params.append('client_secret', process.env.COGNITO_CLIENT_SECRET);
-  //  }
-
-const tokenResponse = await fetch(tokenEndpoint, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/x-www-form-urlencoded'
-  },
-  body: params.toString()
-});
+    const tokenResponse = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
+    });
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
