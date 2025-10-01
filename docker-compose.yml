@@ -1,19 +1,15 @@
 version: '3.8'
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: redis-cache-assessment2
+  memcached:
+    image: memcached:1.6-alpine
+    container_name: memcached-cache-assessment2
     ports:
-      - "6379:6379"
+      - "11211:11211"
+    command: memcached -m 64 -vv
     networks:
       - app-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   app:
     build:
@@ -37,15 +33,14 @@ services:
       - RDS_PASSWORD=vNo7jHx2HU1q
       - RDS_HOSTNAME=database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com
       - RDS_DB_NAME=cohort_2025
-      - REDIS_URL=redis://redis:6379
+      - MEMCACHED_URL=memcached:11211
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - ASSESSMENT_MODE=assessment2
       - STUDENT_ID=${STUDENT_ID}
       - ENABLE_DEBUG_LOGGING=true
     restart: unless-stopped
     depends_on:
-      redis:
-        condition: service_healthy
+      - memcached
     networks:
       - app-network
 
