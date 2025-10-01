@@ -22,10 +22,10 @@ const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
 
 class CognitoAuthService {
-  constructor() {
+ constructor() {
   this.region = process.env.AWS_REGION || 'ap-southeast-2';
-  this.userPoolId = process.env.COGNITO_USER_POOL_ID;
-  this.clientId = process.env.COGNITO_CLIENT_ID;
+  this.userPoolId = process.env.COGNITO_USER_POOL_ID || 'ap-southeast-2_rrPRQJFkU';
+  this.clientId = process.env.COGNITO_CLIENT_ID || '1m661s66355cnkirlsjgl7hmb8';
   this.studentId = process.env.STUDENT_ID || 'n11538082';
     
     // Initialize Cognito client
