@@ -1188,10 +1188,13 @@ async function checkStoredTokens() {
 
  // GOOGLE LOGIN
     async function handleGoogleLogin() {
-        try {
-            const clientId = '1m661s66355cnkirlsjgl7hmb8';
-            const cognitoDomain = 'n11538082-video-api.auth.ap-southeast-2.amazoncognito.com';
-            const redirectUri = encodeURIComponent('https://n11538082-mpeg-video.cab432.com/api/v1/auth/callback');
+    try {
+        window.location.href = 'https://n11538082-video-api.auth.ap-southeast-2.amazoncognito.com/oauth2/authorize?client_id=1m661s66355cnkirlsjgl7hmb8&response_type=code&scope=openid+email+profile&redirect_uri=https%3A%2F%2Fn11538082-mpeg-video.cab432.com%2Fapi%2Fv1%2Fauth%2Fcallback&identity_provider=Google';
+    } catch (error) {
+        console.error('Google login error:', error);
+        showNotification('Failed to initiate Google login', 'error');
+    }
+}
             
             // CRITICAL: Must use /oauth2/authorize NOT /login
             const loginUrl = `https://${cognitoDomain}/oauth2/authorize?` +
