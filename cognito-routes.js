@@ -162,14 +162,18 @@ router.get('/auth/callback', async (req, res) => {
     }
 
     // Exchange authorization code for tokens
-    const tokenEndpoint = `https://${cognitoAuth.studentId}-video-api.auth.${cognitoAuth.region}.amazoncognito.com/oauth2/token`;
-    
     const params = new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: cognitoAuth.clientId,
-      code: code,
-      redirect_uri: `https://${process.env.STUDENT_ID}-mpeg-video.cab432.com/api/v1/auth/callback`
-    });
+  grant_type: 'authorization_code',
+  client_id: cognitoAuth.clientId,
+  code: code,
+  redirect_uri: `https://${process.env.STUDENT_ID}-mpeg-video.cab432.com/api/v1/auth/callback`
+});
+
+console.log('Token exchange request:', {
+  endpoint: tokenEndpoint,
+  params: params.toString()
+});
+
 
     // Add client secret for confidential client flow
    // if (process.env.COGNITO_CLIENT_SECRET) {
