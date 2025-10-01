@@ -1,11 +1,11 @@
-// cognito-stack.ts - Add this to your CDK infrastructure
+
 // This creates the Cognito User Pool with all Assessment 2 requirements
 
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as cdk from 'aws-cdk-lib';
 
-// Add this to your MpegVideoApiStack class
+
 
 export function createCognitoResources(stack: cdk.Stack, studentId: string) {
   
@@ -169,18 +169,12 @@ export function createCognitoResources(stack: cdk.Stack, studentId: string) {
   // ADDITIONAL COGNITO - FEDERATED IDENTITIES (2 marks)
   // GOOGLE OAUTH PROVIDER
   // ============================================
-  
-  // Note: You need to create a Google OAuth app first:
-  // 1. Go to https://console.developers.google.com
-  // 2. Create a new project or select existing
-  // 3. Enable Google+ API
-  // 4. Create OAuth 2.0 credentials
-  // 5. Add authorized redirect URIs from Cognito
+
   
   const googleProvider = new cognito.UserPoolIdentityProviderGoogle(stack, 'GoogleProvider', {
     userPool: userPool,
     clientId: 'YOUR_GOOGLE_CLIENT_ID', // Replace with actual Google OAuth client ID
-    clientSecret: 'YOUR_GOOGLE_CLIENT_SECRET', // Replace with actual secret (better: store in Secrets Manager)
+    clientSecret: 'YOUR_GOOGLE_CLIENT_SECRET', // Replace with actual secret 
     
     scopes: ['profile', 'email', 'openid'],
     
