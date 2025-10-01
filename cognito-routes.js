@@ -151,7 +151,7 @@ router.get('/auth/callback', async (req, res) => {
 
     if (error) {
       console.error('OAuth error:', error, error_description);
-      return res.redirect(`/?error=${error}&error_description=${error_description}`);
+      return res.redirect(`/?error=${error}&error_description=${encodeURIComponent(error_description)}`);
     }
 
     if (!code) {
@@ -169,6 +169,19 @@ router.get('/auth/callback', async (req, res) => {
       client_id: cognitoAuth.clientId,
       code: code,
       redirect_uri: `https://${process.env.STUDENT_ID}-mpeg-video.cab432.com/api/v1/auth/callback`
+    });
+
+    // Add client secret for confidential client flow
+    if (process.env.COGNITO_CLIENT_SECRET) {
+      params.append('client_secret', process.env.COGNITO_CLIENT_SECRET);
+    }
+
+    const tokenResponse = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: params.toString()
     });
 
     if (!tokenResponse.ok) {
