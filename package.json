@@ -59,7 +59,7 @@
     "pg": "^8.11.3",
     "amazon-cognito-identity-js": "^6.3.7",
     "node-cache": "^5.1.2",
-    "memcached": "^2.2.2",
+    "memcached": "^2.2.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
