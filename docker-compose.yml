@@ -1,5 +1,4 @@
 version: '3.8'
-
 services:
   memcached:
     image: memcached:1.6-alpine
@@ -10,7 +9,6 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-
   app:
     build:
       context: .
@@ -27,7 +25,9 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-cab432-n11538082-videos}
-      - COGNITO_CLIENT_ID=1m661s6635scnkirlsjgl7hmb8
+      - COGNITO_USER_POOL_ID=ap-southeast-2_rrPRQJFkU
+      - COGNITO_CLIENT_ID=5mapjsoge4mn8b0ddk9l8t4e4h
+      - COGNITO_CLIENT_SECRET=1nq1s8kkt0pg0fr1q10saq1r1o2nqth794id3rp86gkttiejphri
       - RDS_PORT=5432
       - RDS_USERNAME=s323
       - RDS_PASSWORD=vNo7jHx2HU1q
@@ -36,18 +36,16 @@ services:
       - MEMCACHED_URL=a2-allen-dante.km2jzi.cfg.apse2.cache.amazonaws.com:11211
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - ASSESSMENT_MODE=assessment2
-      - STUDENT_ID=${STUDENT_ID}
+      - STUDENT_ID=n11538082
       - ENABLE_DEBUG_LOGGING=true
     restart: unless-stopped
     depends_on:
       - memcached
     networks:
       - app-network
-
 volumes:
   postgres_data:
     driver: local
-
 networks:
   app-network:
     driver: bridge
