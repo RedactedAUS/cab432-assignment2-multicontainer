@@ -11,7 +11,7 @@ const rateLimit = require('express-rate-limit');
 const AWS = require('aws-sdk');
 const { Pool } = require('pg');
 const crypto = require("crypto");
-const Redis = require('redis');
+const Memcached = require('memcached');
 const os = require('os');
 const { router: authRouter, authenticateCognito, requireAdmin } = require('./cognito-routes');
 // Configure FFmpeg
@@ -289,36 +289,64 @@ const createDatabaseTables = async () => {
   }
 };
 
-// Redis Client for Caching (ElastiCache)
-let redisClient;
-const initializeRedis = async () => {
+// Memcached Client for Caching (ElastiCache)
+let memcachedClient;
+const initializeMemcached = async () => {
   try {
-    console.log('🔴 Initializing Redis cache...');
+    console.log('🟢 Initializing Memcached cache...');
     
-    let redisUrl = config.parameters['redis-url'];
+    let memcachedUrl = config.parameters['redis-url']; // Parameter name remains for backward compatibility
     
-    if (!redisUrl) {
-      console.log('⚠️ Redis URL not found in Parameter Store, using local fallback');
-      redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    if (!memcachedUrl) {
+      console.log('⚠️ Memcached URL not found in Parameter Store, using local fallback');
+      memcachedUrl = process.env.MEMCACHED_URL || 'localhost:11211';
+    } else {
+      // Remove redis:// prefix if present and extract host:port
+      memcachedUrl = memcachedUrl.replace('redis://', '').replace('memcached://', '');
     }
 
-    redisClient = Redis.createClient({ url: redisUrl });
-    
-    redisClient.on('error', (err) => {
-      console.log('⚠️ Redis Client Error:', err.message);
+    console.log(`Connecting to Memcached at: ${memcachedUrl}`);
+
+    memcachedClient = new Memcached(memcachedUrl, {
+      retries: 10,
+      retry: 10000,
+      remove: true,
+      failOverServers: [],
+      timeout: 3000,
+      idle: 5000
     });
     
-    redisClient.on('connect', () => {
-      console.log('✅ Redis connected successfully');
+    memcachedClient.on('failure', (details) => {
+      console.log('⚠️ Memcached Server failed:', details.server);
+    });
+    
+    memcachedClient.on('reconnecting', (details) => {
+      console.log('🔄 Memcached reconnecting to:', details.server);
     });
 
-    await redisClient.connect();
-    await redisClient.ping();
-    console.log('✅ Redis cache initialized successfully');
+    memcachedClient.on('remove', (details) => {
+      console.log('⚠️ Memcached Server removed:', details.server);
+    });
+
+    // Test connection
+    await new Promise((resolve, reject) => {
+      memcachedClient.version((err, version) => {
+        if (err) {
+          console.warn('⚠️ Memcached not available:', err.message);
+          memcachedClient = null;
+          resolve();
+        } else {
+          console.log('✅ Memcached connected successfully. Version:', version);
+          resolve();
+        }
+      });
+    });
+    
+    console.log('✅ Memcached cache initialized successfully');
     
   } catch (error) {
-    console.warn('⚠️ Redis not available, continuing without caching:', error.message);
-    redisClient = null;
+    console.warn('⚠️ Memcached not available, continuing without caching:', error.message);
+    memcachedClient = null;
   }
 };
 
@@ -406,10 +434,19 @@ const DynamoDBSessionManager = {
 // Cache Helper Functions
 const CacheManager = {
   async get(key) {
-    if (!redisClient) return null;
+    if (!memcachedClient) return null;
     try {
-      const value = await redisClient.get(key);
-      return value ? JSON.parse(value) : null;
+      return new Promise((resolve) => {
+        memcachedClient.get(key, (err, data) => {
+          if (err) {
+            console.error('❌ Cache get error:', err);
+            resolve(null);
+          } else {
+            // Memcached automatically parses JSON
+            resolve(data || null);
+          }
+        });
+      });
     } catch (error) {
       console.error('❌ Cache get error:', error);
       return null;
@@ -417,10 +454,19 @@ const CacheManager = {
   },
 
   async set(key, value, expirationSeconds = 300) {
-    if (!redisClient) return false;
+    if (!memcachedClient) return false;
     try {
-      await redisClient.setEx(key, expirationSeconds, JSON.stringify(value));
-      return true;
+      return new Promise((resolve) => {
+        // Memcached automatically stringifies objects
+        memcachedClient.set(key, value, expirationSeconds, (err) => {
+          if (err) {
+            console.error('❌ Cache set error:', err);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
     } catch (error) {
       console.error('❌ Cache set error:', error);
       return false;
@@ -428,12 +474,33 @@ const CacheManager = {
   },
 
   async del(key) {
-    if (!redisClient) return false;
+    if (!memcachedClient) return false;
     try {
-      await redisClient.del(key);
-      return true;
+      return new Promise((resolve) => {
+        memcachedClient.del(key, (err) => {
+          if (err) {
+            console.error('❌ Cache delete error:', err);
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        });
+      });
     } catch (error) {
       console.error('❌ Cache delete error:', error);
+      return false;
+    }
+  },
+
+  // Helper function to delete multiple keys
+  async delMultiple(keys) {
+    if (!memcachedClient || !keys || keys.length === 0) return false;
+    try {
+      const promises = keys.map(key => this.del(key));
+      await Promise.all(promises);
+      return true;
+    } catch (error) {
+      console.error('❌ Cache delete multiple error:', error);
       return false;
     }
   }
@@ -603,25 +670,30 @@ app.get(`${API_BASE}/health`, async (req, res) => {
     healthStatus.status = 'degraded';
   }
 
-  try {
-    if (redisClient) {
-      await redisClient.ping();
-      healthStatus.services.redis = {
-        status: 'connected',
-        type: 'ElastiCache Redis'
-      };
-    } else {
-      healthStatus.services.redis = {
-        status: 'not_configured',
-        note: 'Redis cache not available'
+try {
+      if (memcachedClient) {
+        await new Promise((resolve, reject) => {
+          memcachedClient.version((err, version) => {
+            if (err) reject(err);
+            else resolve(version);
+          });
+        });
+        healthStatus.services.memcached = {
+          status: 'connected',
+          type: 'ElastiCache Memcached'
+        };
+      } else {
+        healthStatus.services.memcached = {
+          status: 'not_configured',
+          note: 'Memcached cache not available'
+        };
+      }
+    } catch (error) {
+      healthStatus.services.memcached = {
+        status: 'error',
+        error: error.message
       };
     }
-  } catch (error) {
-    healthStatus.services.redis = {
-      status: 'error',
-      error: error.message
-    };
-  }
 
   try {
     await dynamoDB.describeTable({ TableName: DynamoDBSessionManager.tableName }).promise();
@@ -1118,11 +1190,11 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
 //Cache block endpoint
 app.get(`${API_BASE}/cache/test`, authenticateTest, async (req, res) => {
   try {
-    const testKey = 'redis-connection-test';
+    const testKey = 'memcached-connection-test';
     const testData = { 
       timestamp: new Date().toISOString(),
-      message: 'Redis cache is working',
-      cache_endpoint: 'clustercfg.n11538082-video-cache.km2jzi.apse2.cache.amazonaws.com:6379'
+      message: 'Memcached cache is working',
+      cache_endpoint: config.parameters['redis-url'] || 'localhost:11211'
     };
     
     // Test cache set operation
@@ -1133,18 +1205,18 @@ app.get(`${API_BASE}/cache/test`, authenticateTest, async (req, res) => {
     
     res.json({
       success: true,
-      redis_connected: !!redisClient,
+      memcached_connected: !!memcachedClient,
       set_operation: setResult ? 'success' : 'failed',
       get_operation: getData ? 'success' : 'failed',
       cached_data: getData,
-      endpoint_used: 'ElastiCache Redis cluster'
+      endpoint_used: 'ElastiCache Memcached cluster'
     });
     
   } catch (error) {
     res.json({
       success: false,
       error: error.message,
-      redis_connected: false
+      memcached_connected: false
     });
   }
 });
@@ -1291,19 +1363,20 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
           const video = result.rows[0];
           console.log(`✅ Video metadata saved to PostgreSQL with ID: ${video.id}`);
 
-          // Invalidate cache after upload
-if (redisClient) {
-  try {
-    const keys = await redisClient.keys(`videos:${req.user.id}:*`);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
-    await redisClient.del(`analytics:${req.user.role}:${req.user.id}`);
-    console.log('✅ Cache invalidated after upload');
-  } catch (cacheError) {
-    console.error('Cache invalidation error:', cacheError);
-  }
-}
+// Invalidate cache after upload
+          if (memcachedClient) {
+            try {
+              // Memcached doesn't support pattern matching, so invalidate common cache keys
+              const keysToInvalidate = [
+                `videos:${req.user.id}:1:10:::created_at:desc`,
+                `analytics:${req.user.role}:${req.user.id}`
+              ];
+              await CacheManager.delMultiple(keysToInvalidate);
+              console.log('✅ Cache invalidated after upload');
+            } catch (cacheError) {
+              console.error('Cache invalidation error:', cacheError);
+            }
+          }
 
           // Generate pre-signed download URL
           const downloadUrl = s3.getSignedUrl('getObject', {
@@ -1828,13 +1901,14 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
     await pool.query('DELETE FROM videos WHERE id = $1', [videoId]);
 
 // Invalidate cache after deletion
-if (redisClient) {
+if (memcachedClient) {
   try {
-    const keys = await redisClient.keys(`videos:${req.user.id}:*`);
-    if (keys.length > 0) {
-      await redisClient.del(keys);
-    }
-    await redisClient.del(`analytics:${req.user.role}:${req.user.id}`);
+    // Memcached doesn't support pattern matching, so invalidate common cache keys
+    const keysToInvalidate = [
+      `videos:${req.user.id}:1:10:::created_at:desc`,
+      `analytics:${req.user.role}:${req.user.id}`
+    ];
+    await CacheManager.delMultiple(keysToInvalidate);
     console.log('✅ Cache invalidated after deletion');
   } catch (cacheError) {
     console.error('Cache invalidation error:', cacheError);
@@ -2149,7 +2223,7 @@ const gracefulShutdown = async (signal) => {
   console.log(`🔄 ${signal} received, shutting down gracefully...`);
   try {
     if (pool) await pool.end();
-    if (redisClient) await redisClient.quit();
+    if (memcachedClient) memcachedClient.end();
     console.log('✅ All connections closed');
     process.exit(0);
   } catch (error) {
@@ -2170,7 +2244,7 @@ const startServer = async () => {
     // Initialize all cloud services
     await initializeCloudServices();
     await initializeDatabase();
-    await initializeRedis();
+    await initializeMemcached();
     
     // Configure upload middleware AFTER cloud services but BEFORE server starts - FIXED PLACEMENT
     upload = multer({
@@ -2203,7 +2277,7 @@ const startServer = async () => {
     console.log('\n✅ ADDITIONAL CRITERIA STATUS:');
     console.log('   ✅ Infrastructure as Code: CDK stack available');
     console.log('   ✅ Third Data Service: DynamoDB for session management');
-    console.log(`   ${redisClient ? '✅' : '⚠️ '} In-memory Caching: ElastiCache Redis ${redisClient ? 'connected' : 'not available'}`);
+    console.log(`   ${memcachedClient ? '✅' : '⚠️ '} In-memory Caching: ElastiCache Memcached ${memcachedClient ? 'connected' : 'not available'}`);
     console.log('   ✅ Parameter Store: Configuration management active');
     console.log('   ✅ Secrets Manager: Credential storage secured');
     console.log('   ✅ S3 Pre-signed URLs: Direct client upload/download');
