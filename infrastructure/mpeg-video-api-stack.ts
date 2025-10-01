@@ -62,11 +62,11 @@ export class MpegVideoApiStack extends cdk.Stack {
     );
 
     // Allow EC2 to access ElastiCache
-    cacheSecurityGroup.addIngressRule(
-      ec2SecurityGroup,
-      ec2.Port.tcp(6379),
-      'Allow EC2 access to Redis'
-    );
+cacheSecurityGroup.addIngressRule(
+  ec2SecurityGroup,
+  ec2.Port.tcp(11211),  // Changed from 6379 to 11211
+  'Allow EC2 access to Memcached'  // Changed from Redis to Memcached
+);
 
     // Allow HTTP/HTTPS traffic to EC2
     ec2SecurityGroup.addIngressRule(
@@ -197,17 +197,16 @@ export class MpegVideoApiStack extends cdk.Stack {
       cacheSubnetGroupName: `${studentId}-cache-subnet-group`,
     });
 
-    // ElastiCache Redis Cluster for caching (In-memory Caching - 3 marks)
-    const memcachedCluster = new elasticache.CfnCacheCluster(this, 'MemcachedCluster', {
-  cacheNodeType: 'cache.t3.micro',
+   // ElastiCache Memcached Cluster for caching (In-memory Caching - 3 marks)
+const memcachedCluster = new elasticache.CfnCacheCluster(this, 'MemcachedCluster', {
+  cacheNodeType: 'cache.t4g.micro',
   engine: 'memcached',
-      numCacheNodes: 1,
-      clusterName: `${studentId}-video-cache`,
-      cacheSubnetGroupName: cacheSubnetGroup.cacheSubnetGroupName,
-      vpcSecurityGroupIds: [cacheSecurityGroup.securityGroupId],
-      engineVersion: '7.0',
-    });
-    redisCluster.addDependency(cacheSubnetGroup);
+  numCacheNodes: 1,
+  clusterName: `${studentId}-video-cache-memcached`,
+  cacheSubnetGroupName: cacheSubnetGroup.cacheSubnetGroupName,
+  vpcSecurityGroupIds: [cacheSecurityGroup.securityGroupId],
+  engineVersion: '1.6.22',
+});
 
     // External API Keys Secret (Secrets Manager - 2 marks)
     const apiKeysSecret = new secretsmanager.Secret(this, 'ExternalApiKeys', {
@@ -228,10 +227,10 @@ export class MpegVideoApiStack extends cdk.Stack {
         description: 'Database connection URL'
       },
       {
-        name: `/${studentId}/app/redis-url`,
-        value: `redis://${redisCluster.attrRedisEndpointAddress}:${redisCluster.attrRedisEndpointPort}`,
-        description: 'Redis connection URL'
-      },
+  name: `/${studentId}/app/redis-url`,
+  value: `${memcachedCluster.attrConfigurationEndpointAddress}:${memcachedCluster.attrConfigurationEndpointPort}`,
+  description: 'Memcached connection URL'  
+},
       {
         name: `/${studentId}/app/s3-bucket`,
         value: videoBucket.bucketName,
@@ -304,10 +303,10 @@ export class MpegVideoApiStack extends cdk.Stack {
       description: 'PostgreSQL database endpoint',
     });
 
-    new cdk.CfnOutput(this, 'RedisEndpoint', {
-      value: redisCluster.attrRedisEndpointAddress,
-      description: 'Redis cluster endpoint',
-    });
+new cdk.CfnOutput(this, 'MemcachedEndpoint', {
+  value: memcachedCluster.attrConfigurationEndpointAddress,
+  description: 'Memcached cluster endpoint',
+});
 
     new cdk.CfnOutput(this, 'S3BucketName', {
       value: videoBucket.bucketName,
