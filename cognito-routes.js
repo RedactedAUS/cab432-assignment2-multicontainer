@@ -162,7 +162,9 @@ router.get('/auth/callback', async (req, res) => {
     }
 
     // Exchange authorization code for tokens
-    const params = new URLSearchParams({
+const tokenEndpoint = `https://${cognitoAuth.studentId}-video-api.auth.${cognitoAuth.region}.amazoncognito.com/oauth2/token`;
+
+const params = new URLSearchParams({
   grant_type: 'authorization_code',
   client_id: cognitoAuth.clientId,
   code: code,
