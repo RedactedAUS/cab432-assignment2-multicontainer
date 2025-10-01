@@ -26,8 +26,8 @@ services:
       - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN}
       - S3_BUCKET_NAME=${S3_BUCKET_NAME:-cab432-n11538082-videos}
       - COGNITO_USER_POOL_ID=ap-southeast-2_rrPRQJFkU
-      - COGNITO_CLIENT_ID=5mapjsoge4mn8b0ddk9l8t4e4h
-      - COGNITO_CLIENT_SECRET=1nq1s8kkt0pg0fr1q10saq1r1o2nqth794id3rp86gkttiejphri
+      - COGNITO_CLIENT_ID=1m661s66355cnkirlsjgl7hmb8
+    #  - COGNITO_CLIENT_SECRET=1nq1s8kkt0pg0fr1q10saq1r1o2nqth794id3rp86gkttiejphri
       - RDS_PORT=5432
       - RDS_USERNAME=s323
       - RDS_PASSWORD=vNo7jHx2HU1q
