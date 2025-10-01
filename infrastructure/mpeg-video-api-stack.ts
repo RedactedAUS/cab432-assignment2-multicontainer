@@ -198,9 +198,9 @@ export class MpegVideoApiStack extends cdk.Stack {
     });
 
     // ElastiCache Redis Cluster for caching (In-memory Caching - 3 marks)
-    const redisCluster = new elasticache.CfnCacheCluster(this, 'RedisCluster', {
-      cacheNodeType: 'cache.t3.micro',
-      engine: 'redis',
+    const memcachedCluster = new elasticache.CfnCacheCluster(this, 'MemcachedCluster', {
+  cacheNodeType: 'cache.t3.micro',
+  engine: 'memcached',
       numCacheNodes: 1,
       clusterName: `${studentId}-video-cache`,
       cacheSubnetGroupName: cacheSubnetGroup.cacheSubnetGroupName,
