@@ -174,7 +174,7 @@ router.get('/auth/callback', async (req, res) => {
     // Add client secret for confidential client flow
    // if (process.env.COGNITO_CLIENT_SECRET) {
     //  params.append('client_secret', process.env.COGNITO_CLIENT_SECRET);
-    }
+  //  }
 
     const tokenResponse = await fetch(tokenEndpoint, {
       method: 'POST',
