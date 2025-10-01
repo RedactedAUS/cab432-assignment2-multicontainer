@@ -295,7 +295,7 @@ const initializeMemcached = async () => {
   try {
     console.log('🟢 Initializing Memcached cache...');
     
-    let memcachedUrl = config.parameters['redis-url']; // Parameter name remains for backward compatibility
+    let memcachedUrl = process.env.MEMCACHED_URL || config.parameters['redis-url'];
     
     if (!memcachedUrl) {
       console.log('⚠️ Memcached URL not found in Parameter Store, using local fallback');
