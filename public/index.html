@@ -1187,24 +1187,23 @@ async function checkStoredTokens() {
         }
 
      // GOOGLE LOGIN
+// GOOGLE LOGIN
 async function handleGoogleLogin() {
     try {
-        const clientId = '1m661s66355cnkirlsjgl7hmb8';  // Fixed: was missing a character
+        const clientId = '1m661s66355cnkirlsjgl7hmb8';  
         const cognitoDomain = 'n11538082-video-api.auth.ap-southeast-2.amazoncognito.com';
         const redirectUri = encodeURIComponent('https://n11538082-mpeg-video.cab432.com/api/v1/auth/callback');
         const scope = 'email+openid+profile';
         
-        // Use OAuth authorize endpoint with identity_provider=Google parameter
         const loginUrl = `https://${cognitoDomain}/oauth2/authorize?identity_provider=Google&client_id=${clientId}&response_type=code&scope=${scope}&redirect_uri=${redirectUri}`;
         
-        console.log('Redirecting to Google login:', loginUrl);
+        console.log('Google Login URL:', loginUrl);
         window.location.href = loginUrl;
     } catch (error) {
         console.error('Google login error:', error);
         showNotification('Failed to initiate Google login', 'error');
     }
 }
-
         // HANDLE SUCCESSFUL COGNITO LOGIN
         function handleCognitoSuccessfulLogin(data) {
             localStorage.setItem('cognitoIdToken', data.tokens.idToken);
