@@ -33,7 +33,7 @@ services:
       - RDS_PASSWORD=vNo7jHx2HU1q
       - RDS_HOSTNAME=database-1-instance-1.ce2haupt2cta.ap-southeast-2.rds.amazonaws.com
       - RDS_DB_NAME=cohort_2025
-      - MEMCACHED_URL=memcached:11211
+      - MEMCACHED_URL=a2-allen-dante.km2jzi.cfg.apse2.cache.amazonaws.com:11211
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
       - ASSESSMENT_MODE=assessment2
       - STUDENT_ID=${STUDENT_ID}
