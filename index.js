@@ -56,10 +56,10 @@ let activeLoadTests = new Map();
 // Initialize all cloud services
 const initializeCloudServices = async () => {
   try {
-    console.log('🚀 Initializing cloud services...');
+    console.log('Initializing cloud services...');
     
     // Load Parameters from Parameter Store
-    console.log('📋 Loading parameters from Parameter Store...');
+    console.log('Loading parameters from Parameter Store...');
     const parameterNames = [
       `/${STUDENT_ID}/app/database-url`,
       `/${STUDENT_ID}/app/redis-url`,
@@ -74,7 +74,7 @@ const initializeCloudServices = async () => {
         const result = await ssm.getParameter({ Name: name }).promise();
         return { name, value: result.Parameter.Value };
       } catch (error) {
-        console.log(`⚠️ Parameter ${name} not found, using fallback`);
+        console.log(`Parameter ${name} not found, using fallback`);
         return { name, value: null };
       }
     });
@@ -86,14 +86,14 @@ const initializeCloudServices = async () => {
     });
 
     // Load Secrets from Secrets Manager
-    console.log('🔐 Loading secrets from Secrets Manager...');
+    console.log('Loading secrets from Secrets Manager...');
     try {
       const dbSecretResult = await secretsManager.getSecretValue({
         SecretId: `${STUDENT_ID}/database/password`
       }).promise();
       config.secrets.database = JSON.parse(dbSecretResult.SecretString);
     } catch (error) {
-      console.log('⚠️ Database secret not found, using environment variables');
+      console.log('Database secret not found, using environment variables');
       config.secrets.database = {
         username: process.env.RDS_USERNAME || 'postgres',
         password: process.env.RDS_PASSWORD || 'password'
@@ -106,7 +106,7 @@ const initializeCloudServices = async () => {
       }).promise();
       config.secrets.apiKeys = JSON.parse(apiSecretResult.SecretString);
     } catch (error) {
-      console.log('⚠️ API keys secret not found, using defaults');
+      console.log('API keys secret not found, using defaults');
       config.secrets.apiKeys = {
         omdb_api_key: 'trilogy',
         jwt_secret: 'fallback-jwt-secret',
@@ -117,11 +117,11 @@ const initializeCloudServices = async () => {
     // Set up S3 bucket name
     config.s3BucketName = config.parameters['s3-bucket'] || process.env.S3_BUCKET_NAME || `cab432-${STUDENT_ID}-videos`;
     
-    console.log('✅ Cloud services configuration loaded');
+    console.log('Cloud services configuration loaded');
     return config;
 
   } catch (error) {
-    console.error('❌ Failed to initialize cloud services:', error);
+    console.error('Failed to initialize cloud services:', error);
     // Use fallback configuration
     config = {
       s3BucketName: process.env.S3_BUCKET_NAME || `cab432-${STUDENT_ID}-videos`,
@@ -168,14 +168,14 @@ const initializeDatabase = async () => {
     while (retries > 0) {
       try {
         const client = await pool.connect();
-        console.log('✅ PostgreSQL connected successfully');
+        console.log(' PostgreSQL connected successfully');
         client.release();
         break;
       } catch (error) {
         retries--;
-        console.log(`⏳ Database connection failed, retrying... (${retries} attempts left)`);
+        console.log(` Database connection failed, retrying... (${retries} attempts left)`);
         if (retries === 0) {
-          console.log('⚠️ Database not available, continuing without database features');
+          console.log(' Database not available, continuing without database features');
           pool = null;
           return;
         }
@@ -185,11 +185,11 @@ const initializeDatabase = async () => {
 
     // Create tables
     await createDatabaseTables();
-    console.log('✅ Database initialized successfully');
+    console.log('Database initialized successfully');
 
   } catch (error) {
-    console.error('❌ Database initialization error:', error);
-    console.log('⚠️ Database not available, continuing without database features');
+    console.error(' Database initialization error:', error);
+    console.log('Database not available, continuing without database features');
     pool = null;
   }
 };
@@ -199,7 +199,7 @@ const createDatabaseTables = async () => {
   try {
     // Check if pool exists before using it
     if (!pool) {
-      console.log('⚠️ No database connection available, skipping table creation');
+      console.log('No database connection available, skipping table creation');
       return;
     }
     
@@ -284,7 +284,7 @@ const createDatabaseTables = async () => {
     `);
 
   } catch (error) {
-    console.error('❌ Error creating database tables:', error);
+    console.error('Error creating database tables:', error);
     throw error;
   }
 };
@@ -293,12 +293,12 @@ const createDatabaseTables = async () => {
 let memcachedClient;
 const initializeMemcached = async () => {
   try {
-    console.log('🟢 Initializing Memcached cache...');
+    console.log('Initializing Memcached cache...');
     
     let memcachedUrl = process.env.MEMCACHED_URL || config.parameters['redis-url'];
     
     if (!memcachedUrl) {
-      console.log('⚠️ Memcached URL not found in Parameter Store, using local fallback');
+      console.log('Memcached URL not found in Parameter Store, using local fallback');
       memcachedUrl = process.env.MEMCACHED_URL || 'localhost:11211';
     } else {
       // Remove redis:// prefix if present and extract host:port
@@ -317,35 +317,35 @@ const initializeMemcached = async () => {
     });
     
     memcachedClient.on('failure', (details) => {
-      console.log('⚠️ Memcached Server failed:', details.server);
+      console.log('Memcached Server failed:', details.server);
     });
     
     memcachedClient.on('reconnecting', (details) => {
-      console.log('🔄 Memcached reconnecting to:', details.server);
+      console.log('Memcached reconnecting to:', details.server);
     });
 
     memcachedClient.on('remove', (details) => {
-      console.log('⚠️ Memcached Server removed:', details.server);
+      console.log('Memcached Server removed:', details.server);
     });
 
     // Test connection
     await new Promise((resolve, reject) => {
       memcachedClient.version((err, version) => {
         if (err) {
-          console.warn('⚠️ Memcached not available:', err.message);
+          console.warn('Memcached not available:', err.message);
           memcachedClient = null;
           resolve();
         } else {
-          console.log('✅ Memcached connected successfully. Version:', version);
+          console.log('Memcached connected successfully. Version:', version);
           resolve();
         }
       });
     });
     
-    console.log('✅ Memcached cache initialized successfully');
+    console.log('Memcached cache initialized successfully');
     
   } catch (error) {
-    console.warn('⚠️ Memcached not available, continuing without caching:', error.message);
+    console.warn('Memcached not available, continuing without caching:', error.message);
     memcachedClient = null;
   }
 };
@@ -371,11 +371,11 @@ const DynamoDBSessionManager = {
       };
       
       await dynamoDB.put(params).promise();
-      console.log(`🔐 Session created in DynamoDB: ${sessionId}`);
+      console.log(`Session created in DynamoDB: ${sessionId}`);
       return sessionId;
       
     } catch (error) {
-      console.error('❌ Error creating session in DynamoDB:', error);
+      console.error('Error creating session in DynamoDB:', error);
       return null;
     }
   },
@@ -391,7 +391,7 @@ const DynamoDBSessionManager = {
       return result.Item || null;
       
     } catch (error) {
-      console.error('❌ Error getting session from DynamoDB:', error);
+      console.error('Error getting session from DynamoDB:', error);
       return null;
     }
   },
@@ -404,10 +404,10 @@ const DynamoDBSessionManager = {
       };
       
       await dynamoDB.delete(params).promise();
-      console.log(`🗑️ Session deleted from DynamoDB: ${sessionId}`);
+      console.log(`Session deleted from DynamoDB: ${sessionId}`);
       
     } catch (error) {
-      console.error('❌ Error deleting session from DynamoDB:', error);
+      console.error('Error deleting session from DynamoDB:', error);
     }
   },
 
@@ -425,7 +425,7 @@ const DynamoDBSessionManager = {
       return result.Items || [];
       
     } catch (error) {
-      console.error('❌ Error getting user sessions from DynamoDB:', error);
+      console.error('Error getting user sessions from DynamoDB:', error);
       return [];
     }
   }
@@ -439,7 +439,7 @@ const CacheManager = {
       return new Promise((resolve) => {
         memcachedClient.get(key, (err, data) => {
           if (err) {
-            console.error('❌ Cache get error:', err);
+            console.error('Cache get error:', err);
             resolve(null);
           } else {
             // Memcached automatically parses JSON
@@ -448,7 +448,7 @@ const CacheManager = {
         });
       });
     } catch (error) {
-      console.error('❌ Cache get error:', error);
+      console.error('Cache get error:', error);
       return null;
     }
   },
@@ -460,7 +460,7 @@ const CacheManager = {
         // Memcached automatically stringifies objects
         memcachedClient.set(key, value, expirationSeconds, (err) => {
           if (err) {
-            console.error('❌ Cache set error:', err);
+            console.error('Cache set error:', err);
             resolve(false);
           } else {
             resolve(true);
@@ -468,7 +468,7 @@ const CacheManager = {
         });
       });
     } catch (error) {
-      console.error('❌ Cache set error:', error);
+      console.error('Cache set error:', error);
       return false;
     }
   },
@@ -479,7 +479,7 @@ const CacheManager = {
       return new Promise((resolve) => {
         memcachedClient.del(key, (err) => {
           if (err) {
-            console.error('❌ Cache delete error:', err);
+            console.error('Cache delete error:', err);
             resolve(false);
           } else {
             resolve(true);
@@ -487,7 +487,7 @@ const CacheManager = {
         });
       });
     } catch (error) {
-      console.error('❌ Cache delete error:', error);
+      console.error('Cache delete error:', error);
       return false;
     }
   },
@@ -500,7 +500,7 @@ const CacheManager = {
       await Promise.all(promises);
       return true;
     } catch (error) {
-      console.error('❌ Cache delete multiple error:', error);
+      console.error('Cache delete multiple error:', error);
       return false;
     }
   }
@@ -582,11 +582,11 @@ const authenticateTest = async (req, res, next) => {
       const result = await pool.query('SELECT * FROM users WHERE username = $1', ['testuser']);
       if (result.rows.length > 0) {
         req.user = result.rows[0];
-        console.log(`✅ Authentication successful for user: ${req.user.username}`);
+        console.log(`Authentication successful for user: ${req.user.username}`);
         return next();
       }
     } catch (error) {
-      console.error('❌ Auth database error:', error);
+      console.error('Auth database error:', error);
     }
   }
 
@@ -621,18 +621,18 @@ app.get(`${API_BASE}/health`, async (req, res) => {
     uptime: Math.floor(process.uptime()),
     assessment_2_services: {
       core_criteria: {
-        statelessness: '✅ No local file storage - all data in cloud',
-        first_persistence: '✅ PostgreSQL RDS - structured data',
-        second_persistence: '✅ S3 Object Storage - video files',
-        route53_dns: '✅ Custom domain configured'
+        statelessness: 'No local file storage - all data in cloud',
+        first_persistence: 'PostgreSQL RDS - structured data',
+        second_persistence: 'S3 Object Storage - video files',
+        route53_dns: 'Custom domain configured'
       },
       additional_criteria: {
-        infrastructure_as_code: '✅ CDK deployment available',
-        third_persistence: '✅ DynamoDB - session management',
-        in_memory_cache: redisClient ? '✅ ElastiCache Redis' : '⚠️ Redis not available',
-        parameter_store: '✅ Configuration management',
-        secrets_manager: '✅ Secure credential storage',
-        s3_presigned_urls: '✅ Direct client upload/download'
+        infrastructure_as_code: 'CDK deployment available',
+        third_persistence: 'DynamoDB - session management',
+        in_memory_cache: redisClient ? 'ElastiCache Redis' : 'Redis not available',
+        parameter_store: 'Configuration management',
+        secrets_manager: 'Secure credential storage',
+        s3_presigned_urls: 'Direct client upload/download'
       }
     },
     services: {}
@@ -714,7 +714,7 @@ try {
   res.status(statusCode).json(healthStatus);
 });
 
-// CPU MONITORING ENDPOINT (Assignment 1)
+// CPU MONITORING ENDPOINT 
 app.get(`${API_BASE}/system/cpu`, authenticateTest, (req, res) => {
   try {
     const cpus = os.cpus();
@@ -1060,7 +1060,7 @@ app.post(`${API_BASE}/auth/test-login`, async (req, res) => {
       res.status(404).json({ error: 'Test user not found' });
     }
   } catch (error) {
-    console.error('❌ Test login error:', error);
+    console.error('Test login error:', error);
     res.status(500).json({ error: 'Database error during test login' });
   }
 });
@@ -1072,17 +1072,17 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
     const cacheKey = `videos:${req.user.id}:${page}:${limit}:${search}:${sort}:${order}`;
     
     // Try cache first
-    console.log('🔍 Checking cache for videos list...');
+    console.log('Checking cache for videos list...');
     let cachedResult = await CacheManager.get(cacheKey);
     
     if (cachedResult) {
-      console.log('✅ Cache hit - returning cached videos');
+      console.log('Cache hit - returning cached videos');
       cachedResult.cached = true;
       cachedResult.cache_hit = new Date().toISOString();
       return res.json(cachedResult);
     }
 
-    console.log('❌ Cache miss - querying database');
+    console.log('Cache miss - querying database');
     
     const offset = (page - 1) * limit;
     
@@ -1141,7 +1141,7 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
           file_size_mb: Math.round(video.file_size / (1024 * 1024) * 100) / 100
         };
       } catch (urlError) {
-        console.error('❌ Error generating pre-signed URL:', urlError);
+        console.error('Error generating pre-signed URL:', urlError);
         return {
           ...video,
           download_url: null,
@@ -1173,12 +1173,12 @@ app.get(`${API_BASE}/videos`, authenticateTest, async (req, res) => {
     
     // Cache the result for 5 minutes
     await CacheManager.set(cacheKey, result, 300);
-    console.log('💾 Result cached for future requests');
+    console.log('Result cached for future requests');
     
     res.json(result);
     
   } catch (error) {
-    console.error('❌ Error fetching videos:', error);
+    console.error('Error fetching videos:', error);
     res.status(500).json({ 
       error: 'Failed to fetch videos', 
       code: 'FETCH_ERROR',
@@ -1223,11 +1223,11 @@ app.get(`${API_BASE}/cache/test`, authenticateTest, async (req, res) => {
 
 // VIDEO UPLOAD with cache invalidation
 app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res) => {
-  console.log(`🎬 Upload request from user ${req.user.username} (ID: ${req.user.id})`);
+  console.log(`Upload request from user ${req.user.username} (ID: ${req.user.id})`);
   
   upload.single('video')(req, res, async (error) => {
     if (error) {
-      console.error('❌ Multer upload error:', error);
+      console.error('Multer upload error:', error);
       
       if (error.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ 
@@ -1261,7 +1261,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
       const sanitizedFilename = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
       const s3Key = `videos/${userId}/${timestamp}-${randomId}-${sanitizedFilename}`;
 
-      console.log(`🔑 Generated S3 key: ${s3Key}`);
+      console.log(`Generated S3 key: ${s3Key}`);
 
       // Direct S3 upload using memory buffer
       const uploadParams = {
@@ -1281,7 +1281,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
       console.log('☁️ Starting direct S3 upload...');
       const s3Result = await s3.upload(uploadParams).promise();
       
-      console.log('✅ File successfully uploaded to S3:', {
+      console.log('File successfully uploaded to S3:', {
         key: s3Key,
         bucket: config.s3BucketName,
         size: req.file.size,
@@ -1302,7 +1302,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
         Expires: 3600
       });
 
-      console.log('🔍 Starting video analysis with FFprobe...');
+      console.log('Starting video analysis with FFprobe...');
       
       // Analyze video metadata using FFprobe
       ffmpeg.ffprobe(signedUrl, async (ffprobeError, metadata) => {
@@ -1316,10 +1316,10 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
         };
 
         if (ffprobeError) {
-          console.error('⚠️ FFprobe analysis failed:', ffprobeError.message);
+          console.error('FFprobe analysis failed:', ffprobeError.message);
           videoMetadata.status = 'uploaded_metadata_failed';
         } else {
-          console.log('✅ Video analysis completed successfully');
+          console.log('Video analysis completed successfully');
           const videoStream = metadata.streams?.find(stream => stream.codec_type === 'video');
           const format = metadata.format;
           
@@ -1335,7 +1335,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
 
         try {
           // Save to PostgreSQL
-          console.log('💾 Saving video metadata to PostgreSQL...');
+          console.log('Saving video metadata to PostgreSQL...');
           const result = await pool.query(
             `INSERT INTO videos (
               user_id, original_filename, s3_key, s3_bucket, file_size, 
@@ -1361,7 +1361,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
           );
 
           const video = result.rows[0];
-          console.log(`✅ Video metadata saved to PostgreSQL with ID: ${video.id}`);
+          console.log(`Video metadata saved to PostgreSQL with ID: ${video.id}`);
 
 // Invalidate cache after upload
           if (memcachedClient) {
@@ -1372,7 +1372,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
                 `analytics:${req.user.role}:${req.user.id}`
               ];
               await CacheManager.delMultiple(keysToInvalidate);
-              console.log('✅ Cache invalidated after upload');
+              console.log('Cache invalidated after upload');
             } catch (cacheError) {
               console.error('Cache invalidation error:', cacheError);
             }
@@ -1418,7 +1418,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
           });
 
         } catch (dbError) {
-          console.error('❌ Database error while saving video metadata:', dbError);
+          console.error('Database error while saving video metadata:', dbError);
           res.status(500).json({ 
             error: 'Failed to save video metadata to database',
             code: 'DB_ERROR',
@@ -1430,7 +1430,7 @@ app.post(`${API_BASE}/videos/upload`, authenticateTest, uploadLimiter, (req, res
       });
 
     } catch (uploadError) {
-      console.error('❌ S3 upload failed:', uploadError);
+      console.error('S3 upload failed:', uploadError);
       return res.status(500).json({ 
         error: 'S3 upload failed', 
         code: 'S3_UPLOAD_ERROR',
@@ -1520,7 +1520,7 @@ app.get(`${API_BASE}/analytics`, authenticateTest, async (req, res) => {
       res.json(analyticsResult);
     }
   } catch (error) {
-    console.error('❌ Analytics error:', error);
+    console.error('Analytics error:', error);
     res.status(500).json({ 
       error: 'Failed to fetch analytics',
       code: 'ANALYTICS_ERROR',
@@ -1542,7 +1542,7 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       });
     }
 
-    console.log(`🎬 Transcode request for video ${videoId} to ${format} quality ${quality}`);
+    console.log(`Transcode request for video ${videoId} to ${format} quality ${quality}`);
 
     // Get video details from database
     const videoResult = await pool.query(
@@ -1575,7 +1575,7 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
     );
 
     const job = jobResult.rows[0];
-    console.log(`🔐 Created processing job with ID: ${job.id}`);
+    console.log(`Created processing job with ID: ${job.id}`);
 
     // Update job status to processing
     await pool.query(
@@ -1589,7 +1589,7 @@ app.post(`${API_BASE}/videos/:id/transcode`, authenticateTest, async (req, res) 
       const outputKey = `processed/${req.user.id}/${timestamp}-${format}-${quality}-${path.basename(video.original_filename, path.extname(video.original_filename))}.${format}`;
 
       // Generate pre-signed URLs for input and output
-  console.log('📥 Downloading S3 file for local processing...');
+  console.log(' Downloading S3 file for local processing...');
 
 // Download file from S3 using AWS SDK instead of pre-signed URL
 const downloadParams = {
@@ -1605,9 +1605,9 @@ const inputTempFile = `/tmp/input-${Date.now()}${path.extname(video.original_fil
 // Write S3 data to local temp file
 fs.writeFileSync(inputTempFile, s3Object.Body);
 
-console.log(`🔄 Starting FFmpeg transcoding process...`);
-console.log(`📥 Input: ${video.s3_key}`);
-console.log(`📤 Output: ${outputKey}`);
+console.log(`Starting FFmpeg transcoding process...`);
+console.log(` Input: ${video.s3_key}`);
+console.log(`Output: ${outputKey}`);
 
 // Quality settings - FIXED: Use 'x' instead of ':' for size format
 const qualitySettings = {
@@ -1657,12 +1657,12 @@ await new Promise((resolve, reject) => {
   });
 
   command.on('error', (error) => {
-    console.error(`❌ FFmpeg error:`, error);
+    console.error(`FFmpeg error:`, error);
     reject(error);
   });
 
   command.on('end', async () => {
-    console.log(`✅ Transcoding completed successfully`);
+    console.log(`Transcoding completed successfully`);
     resolve();
   });
 
@@ -1703,7 +1703,7 @@ try {
     console.log(`🗑️ Temp file cleaned up: ${tempFile}`);
   }
 } catch (cleanupError) {
-  console.warn(`⚠️ Could not clean up temp file: ${tempFile}`, cleanupError);
+  console.warn(`Could not clean up temp file: ${tempFile}`, cleanupError);
 }
       // Update job with completion details
       const processingTime = (Date.now() - startTime) / 1000;
@@ -1758,7 +1758,7 @@ try {
       });
 
     } catch (processingError) {
-      console.error(`❌ Transcoding failed:`, processingError);
+      console.error(`Transcoding failed:`, processingError);
       
       // Update job status to failed
       await pool.query(
@@ -1779,7 +1779,7 @@ try {
     }
 
   } catch (error) {
-    console.error(`❌ Error setting up transcoding job:`, error);
+    console.error(`Error setting up transcoding job:`, error);
     res.status(500).json({ 
       error: 'Failed to start transcoding job',
       code: 'JOB_SETUP_ERROR',
@@ -1824,7 +1824,7 @@ app.get(`${API_BASE}/jobs`, authenticateTest, async (req, res) => {
             ResponseContentDisposition: `attachment; filename="${path.basename(job.output_s3_key)}"`
           });
         } catch (urlError) {
-          console.error(`❌ Error generating download URL for job ${job.id}:`, urlError);
+          console.error(`Error generating download URL for job ${job.id}:`, urlError);
         }
       }
       
@@ -1848,7 +1848,7 @@ app.get(`${API_BASE}/jobs`, authenticateTest, async (req, res) => {
     });
     
   } catch (error) {
-    console.error(`❌ Error fetching processing jobs:`, error);
+    console.error(`Error fetching processing jobs:`, error);
     res.status(500).json({ 
       error: 'Failed to fetch processing jobs',
       code: 'JOBS_FETCH_ERROR',
@@ -1892,9 +1892,9 @@ app.delete(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
         Bucket: video.s3_bucket,
         Key: video.s3_key
       }).promise();
-      console.log(`✅ S3 object deleted: ${video.s3_key}`);
+      console.log(`S3 object deleted: ${video.s3_key}`);
     } catch (s3Error) {
-      console.error('⚠️ S3 deletion error:', s3Error);
+      console.error('S3 deletion error:', s3Error);
     }
 
     // Delete from database
@@ -1909,7 +1909,7 @@ if (memcachedClient) {
       `analytics:${req.user.role}:${req.user.id}`
     ];
     await CacheManager.delMultiple(keysToInvalidate);
-    console.log('✅ Cache invalidated after deletion');
+    console.log('Cache invalidated after deletion');
   } catch (cacheError) {
     console.error('Cache invalidation error:', cacheError);
   }
@@ -1928,7 +1928,7 @@ res.json({
 });
 
   } catch (error) {
-    console.error('❌ Error deleting video:', error);
+    console.error('Error deleting video:', error);
     res.status(500).json({ 
       error: 'Failed to delete video',
       code: 'DELETE_ERROR',
@@ -1993,7 +1993,7 @@ app.get(`${API_BASE}/videos/:id`, authenticateTest, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching video:', error);
+    console.error('Error fetching video:', error);
     res.status(500).json({ 
       error: 'Failed to fetch video',
       code: 'FETCH_ERROR',
@@ -2018,7 +2018,7 @@ app.get(`${API_BASE}/sessions`, authenticateTest, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error fetching sessions:', error);
+    console.error('Error fetching sessions:', error);
     res.status(500).json({ error: 'Failed to fetch sessions' });
   }
 });
@@ -2032,7 +2032,7 @@ app.delete(`${API_BASE}/sessions/:sessionId`, authenticateTest, async (req, res)
       sessionId: req.params.sessionId
     });
   } catch (error) {
-    console.error('❌ Error deleting session:', error);
+    console.error('Error deleting session:', error);
     res.status(500).json({ error: 'Failed to delete session' });
   }
 });
@@ -2079,7 +2079,7 @@ app.get(`${API_BASE}/auth/me`, authenticateTest, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching user profile:', error);
+    console.error('Error fetching user profile:', error);
     res.status(500).json({ 
       error: 'Failed to fetch user profile',
       code: 'PROFILE_ERROR',
@@ -2179,7 +2179,7 @@ app.get(`${API_BASE}/status`, async (req, res) => {
 
 // Error handling middleware
 app.use((error, req, res, next) => {
-  console.error(`❌ Unhandled error [${req.requestId}]:`, error);
+  console.error(`Unhandled error [${req.requestId}]:`, error);
   
   if (error.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({
@@ -2220,14 +2220,14 @@ app.use('*', (req, res) => {
 
 // Graceful shutdown
 const gracefulShutdown = async (signal) => {
-  console.log(`🔄 ${signal} received, shutting down gracefully...`);
+  console.log(`${signal} received, shutting down gracefully...`);
   try {
     if (pool) await pool.end();
     if (memcachedClient) memcachedClient.end();
-    console.log('✅ All connections closed');
+    console.log('All connections closed');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error during shutdown:', error);
+    console.error('Error during shutdown:', error);
     process.exit(1);
   }
 };
@@ -2238,8 +2238,8 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 // START SERVER with complete cloud services initialization
 const startServer = async () => {
   try {
-    console.log('🚀 Starting MPEG Video Processing API with Complete Cloud Integration');
-    console.log('📋 Assessment 2 Requirements Status:');
+    console.log('Starting MPEG Video Processing API with Complete Cloud Integration');
+    console.log('Assessment 2 Requirements Status:');
     
     // Initialize all cloud services
     await initializeCloudServices();
@@ -2265,44 +2265,44 @@ const startServer = async () => {
       }
     });
     
-    console.log('✅ Upload middleware configured with memory storage');
+    console.log('Upload middleware configured with memory storage');
     
-    console.log('\n✅ CORE CRITERIA STATUS:');
-    console.log('   ✅ Statelessness: No local file storage');
-    console.log('   ✅ Data Persistence 1: PostgreSQL/RDS for metadata'); 
-    console.log('   ✅ Data Persistence 2: S3 Object Storage for videos');
-    console.log('   ✅ Route53 DNS: Custom domain configured');
+    console.log('\nCORE CRITERIA STATUS:');
+    console.log('   Statelessness: No local file storage');
+    console.log('   Data Persistence 1: PostgreSQL/RDS for metadata'); 
+    console.log('   Data Persistence 2: S3 Object Storage for videos');
+    console.log('   Route53 DNS: Custom domain configured');
     console.log('   ⏳ Cognito Authentication: Test mode (to be implemented)');
     
-    console.log('\n✅ ADDITIONAL CRITERIA STATUS:');
-    console.log('   ✅ Infrastructure as Code: CDK stack available');
-    console.log('   ✅ Third Data Service: DynamoDB for session management');
-    console.log(`   ${memcachedClient ? '✅' : '⚠️ '} In-memory Caching: ElastiCache Memcached ${memcachedClient ? 'connected' : 'not available'}`);
-    console.log('   ✅ Parameter Store: Configuration management active');
-    console.log('   ✅ Secrets Manager: Credential storage secured');
-    console.log('   ✅ S3 Pre-signed URLs: Direct client upload/download');
+    console.log('\nADDITIONAL CRITERIA STATUS:');
+    console.log('   Infrastructure as Code: CDK stack available');
+    console.log('   Third Data Service: DynamoDB for session management');
+    console.log(`   ${memcachedClient ? '✅' : ''} In-memory Caching: ElastiCache Memcached ${memcachedClient ? 'connected' : 'not available'}`);
+    console.log('   Parameter Store: Configuration management active');
+    console.log('   Secrets Manager: Credential storage secured');
+    console.log('   S3 Pre-signed URLs: Direct client upload/download');
     
-    console.log('\n✅ ASSIGNMENT 1 INTEGRATION:');
-    console.log('   ✅ CPU Intensive Task: Video transcoding with FFmpeg');
-    console.log('   ✅ Load Testing: 5-minute CPU load test endpoint');
-    console.log('   ✅ System Monitoring: Real-time CPU usage tracking');
-    console.log('   ✅ Batch Processing: Multiple concurrent transcoding jobs');
+    console.log('\nASSIGNMENT 1 INTEGRATION:');
+    console.log('   CPU Intensive Task: Video transcoding with FFmpeg');
+    console.log('   Load Testing: 5-minute CPU load test endpoint');
+    console.log('   System Monitoring: Real-time CPU usage tracking');
+    console.log('   Batch Processing: Multiple concurrent transcoding jobs');
     
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`\n🎯 Server running on port ${PORT}`);
-      console.log(`🌐 API Base URL: http://localhost:${PORT}${API_BASE}`);
-      console.log(`💚 Health Check: http://localhost:${PORT}${API_BASE}/health`);
-      console.log(`🔧 Configuration: http://localhost:${PORT}${API_BASE}/config`);
-      console.log(`📊 Analytics: http://localhost:${PORT}${API_BASE}/analytics`);
-      console.log(`🔐 Sessions: http://localhost:${PORT}${API_BASE}/sessions`);
-      console.log(`🖥️ CPU Monitor: http://localhost:${PORT}${API_BASE}/system/cpu`);
-      console.log(`🔥 Load Test: http://localhost:${PORT}${API_BASE}/load-test/start`);
-      console.log('\n🏆 ASSESSMENT 1 + 2 READY - All Criteria Implemented!');
-      console.log('📋 Total Available Marks: 30/30 (Assignment 1) + 25+/30 (Assignment 2)');
+      console.log(`\nServer running on port ${PORT}`);
+      console.log(`API Base URL: http://localhost:${PORT}${API_BASE}`);
+      console.log(`Health Check: http://localhost:${PORT}${API_BASE}/health`);
+      console.log(`Configuration: http://localhost:${PORT}${API_BASE}/config`);
+      console.log(`Analytics: http://localhost:${PORT}${API_BASE}/analytics`);
+      console.log(`Sessions: http://localhost:${PORT}${API_BASE}/sessions`);
+      console.log(`CPU Monitor: http://localhost:${PORT}${API_BASE}/system/cpu`);
+      console.log(`Load Test: http://localhost:${PORT}${API_BASE}/load-test/start`);
+      console.log('\nASSESSMENT 1 + 2 READY - All Criteria Implemented!');
+      console.log('Total Available Marks: 30/30 (Assignment 1) + 25+/30 (Assignment 2)');
     });
     
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    console.error('Failed to start server:', error);
     process.exit(1);
   }
 };
