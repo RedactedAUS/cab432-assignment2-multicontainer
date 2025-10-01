@@ -176,11 +176,10 @@ router.get('/auth/callback', async (req, res) => {
     //  params.append('client_secret', process.env.COGNITO_CLIENT_SECRET);
   //  }
 
-    const tokenResponse = await fetch(tokenEndpoint, {
+const tokenResponse = await fetch(tokenEndpoint, {
   method: 'POST',
   headers: {
-    'Content-Type': 'application/x-www-form-urlencoded',
-    'Authorization': 'Basic ' + Buffer.from(`${cognitoAuth.clientId}:`).toString('base64')
+    'Content-Type': 'application/x-www-form-urlencoded'
   },
   body: params.toString()
 });
