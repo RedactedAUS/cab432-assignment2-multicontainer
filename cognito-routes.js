@@ -177,12 +177,13 @@ router.get('/auth/callback', async (req, res) => {
   //  }
 
     const tokenResponse = await fetch(tokenEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: params.toString()
-    });
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Authorization': 'Basic ' + Buffer.from(`${cognitoAuth.clientId}:`).toString('base64')
+  },
+  body: params.toString()
+});
 
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
