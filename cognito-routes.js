@@ -484,7 +484,7 @@ router.get('/auth/config', (req, res) => {
     res.json({
       success: true,
       config: config,
-      googleLoginUrl: `${config.hostedUIUrl}/oauth2/authorize?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent('https://' + process.env.STUDENT_ID + '-mpeg-video.cab432.com/api/v1/auth/callback')}`
+      googleLoginUrl: `${config.hostedUIUrl}/oauth2/authorize?client_id=${config.clientId}&response_type=code&scope=email+openid+profile&redirect_uri=${encodeURIComponent('https://' + process.env.STUDENT_ID + '-mpeg-video.cab432.com/api/v1/auth/callback')}&identity_provider=Google`
     });
 
   } catch (error) {
